@@ -36,10 +36,14 @@ func (b *bot) Start() error {
 }
 
 func (b *bot) Wait() {
+	b.init()
 	<-b.channel
 }
 
-func (*bot) Stop()
+func (b *bot) Stop() {
+	b.init()
+	b.session.Close()
+}
 
 func (b *bot) init() {
 	b.initOnce.Do(func() {

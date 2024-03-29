@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"os"
 
+	"streambot/bot"
 	"streambot/config"
 
 	"github.com/rs/zerolog"
@@ -50,6 +51,13 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		conf := config.Load()
 		log.Info().Msg(conf.Token)
+
+		b, err := bot.New(conf)
+		log.Fatal().Err(err).Msg("Failed to create bot")
+
+		b.Start()
+		b.Wait()
+		b.Stop()
 	},
 }
 
