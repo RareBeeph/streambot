@@ -50,12 +50,18 @@ to quickly create a Cobra application.`,
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
 		conf := config.Load()
-		log.Info().Msg(conf.Token)
 
 		b, err := bot.New(conf)
-		log.Fatal().Err(err).Msg("Failed to create bot")
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to create bot.")
+		}
 
-		b.Start()
+		err = b.Start()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to start bot.")
+		}
+		log.Info().Msg("Started successfully.")
+
 		b.Wait()
 		b.Stop()
 	},
