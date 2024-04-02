@@ -3,6 +3,7 @@ package bot
 import (
 	"os"
 	"os/signal"
+	"streambot/bot/commands"
 	"streambot/config"
 	"sync"
 	"syscall"
@@ -67,6 +68,7 @@ func (b *bot) init() {
 	b.initOnce.Do(func() {
 		// Register the messageCreate func as a callback for MessageCreate events.
 		b.session.AddHandler(messageCreate)
+		b.session.AddHandler(commands.SlashCommandRouter)
 
 		// In this example, we only care about receiving message events.
 		b.session.Identify.Intents = discordgo.IntentsGuildMessages
