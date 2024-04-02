@@ -28,6 +28,10 @@ var handlers = map[string]handler{
 	},
 }
 
+func GetCommands() []*discordgo.ApplicationCommand {
+	return commands
+}
+
 func Register(cmd *Definition) {
 	cmd.Base.Name = cmd.Name
 	commands = append(commands, cmd.Base)

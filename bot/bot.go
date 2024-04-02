@@ -20,9 +20,10 @@ type Bot interface {
 }
 
 type bot struct {
-	session  *discordgo.Session
-	channel  chan os.Signal
-	initOnce sync.Once
+	session            *discordgo.Session
+	channel            chan os.Signal
+	initOnce           sync.Once
+	registeredCommands []*discordgo.ApplicationCommand
 }
 
 func New(conf *config.Config) (Bot, error) {
@@ -34,14 +35,10 @@ func (b *bot) Start() error {
 	b.init()
 
 	guildID := "" // TODO: get this from the yml
-
-	// Cleanup on aisle my pants
-	err := b.UnregisterCommands(guildID)
+	err := b.registerCommands(guildID)
 	if err != nil {
 		return err
 	}
-
-	b.RegisterCommands()
 
 	signal.Notify(b.channel, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	return nil
@@ -55,23 +52,36 @@ func (b *bot) Wait() {
 func (b *bot) Stop() {
 	b.init()
 
-	b.UnregisterCommands("") // TODO: get GuildID from the yml
+	guildID := "" // TODO: get this from the yml
+	b.unregisterCommands(guildID)
 
 	log.Info().Msg("Closing session...")
 	b.session.Close() // Technically returns an error but the app is closing anyways
 	log.Info().Msg("Shutting down.")
 }
 
-func (b *bot) RegisterCommands() {
+func (b *bot) registerCommands(guildID string) error {
+	commandList := commands.GetCommands()
+	b.registeredCommands = make([]*discordgo.ApplicationCommand, len(commandList))
 
+	for i, c := range commandList {
+		reg, err := b.session.ApplicationCommandCreate(b.session.State.User.ID, guildID, c)
+		if err != nil {
+			return err
+		}
+		b.registeredCommands[i] = reg
+	}
+	return nil
 }
 
-func (b *bot) UnregisterCommands(guildID string) error {
-	registeredCommands, err := b.session.ApplicationCommands(b.session.State.User.ID, guildID)
-	if err != nil {
-		return err
-	}
-	for _, c := range registeredCommands {
+func (b *bot) unregisterCommands(guildID string) error {
+	// unsafe:
+	// registeredCommands, err := b.session.ApplicationCommands(b.session.State.User.ID, guildID)
+	// if err != nil {
+	// 	return err
+	// }
+
+	for _, c := range b.registeredCommands {
 		err := b.session.ApplicationCommandDelete(b.session.State.User.ID, guildID, c.ID)
 		if err != nil {
 			return err
