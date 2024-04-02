@@ -36,16 +36,12 @@ func (b *bot) Start() error {
 	guildID := "" // TODO: get this from the yml
 
 	// Cleanup on aisle my pants
-	registeredCommands, err := b.session.ApplicationCommands(b.session.State.User.ID, guildID)
+	err := b.UnregisterCommands(guildID)
 	if err != nil {
 		return err
 	}
-	for _, c := range registeredCommands {
-		err := b.session.ApplicationCommandDelete(b.session.State.User.ID, guildID, c.ID)
-		if err != nil {
-			return err
-		}
-	}
+
+	b.RegisterCommands()
 
 	signal.Notify(b.channel, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	return nil
@@ -59,9 +55,30 @@ func (b *bot) Wait() {
 func (b *bot) Stop() {
 	b.init()
 
+	b.UnregisterCommands("") // TODO: get GuildID from the yml
+
 	log.Info().Msg("Closing session...")
 	b.session.Close() // Technically returns an error but the app is closing anyways
 	log.Info().Msg("Shutting down.")
+}
+
+func (b *bot) RegisterCommands() {
+
+}
+
+func (b *bot) UnregisterCommands(guildID string) error {
+	registeredCommands, err := b.session.ApplicationCommands(b.session.State.User.ID, guildID)
+	if err != nil {
+		return err
+	}
+	for _, c := range registeredCommands {
+		err := b.session.ApplicationCommandDelete(b.session.State.User.ID, guildID, c.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (b *bot) init() {
