@@ -10,23 +10,8 @@ type Definition struct {
 	Handler handler
 }
 
-var commands = []*discordgo.ApplicationCommand{
-	{
-		Name:        "helloworld",
-		Description: "hello world",
-	},
-}
-
-var handlers = map[string]handler{
-	"helloworld": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "hello world",
-			},
-		})
-	},
-}
+var commands = []*discordgo.ApplicationCommand{}
+var handlers = map[string]handler{}
 
 func GetCommands() []*discordgo.ApplicationCommand {
 	return commands
