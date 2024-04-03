@@ -23,6 +23,8 @@ package main
 
 import "streambot/cmd"
 
+//go:generate go run gen/main.go
+
 func main() {
 	cmd.Execute()
 }

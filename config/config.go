@@ -3,8 +3,9 @@ package config
 import "github.com/spf13/viper"
 
 type Config struct {
-	Token   string
-	GuildID string
+	Token       string
+	GuildID     string
+	DatabaseURL string
 
 	Twitch struct {
 		ClientID     string
