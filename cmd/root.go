@@ -95,6 +95,8 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func InitConfig() {
+	viper.SetDefault("DatabaseURL", "sqlite://data.db")
+
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
