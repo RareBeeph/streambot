@@ -21,10 +21,17 @@ THE SOFTWARE.
 */
 package main
 
-import "streambot/cmd"
+import (
+	"streambot/cmd"
+	"streambot/db"
+	"streambot/models"
+	"streambot/query"
+)
 
 //go:generate go run gen/main.go
 
 func main() {
+	query.SetDefault(db.Connection)
+	db.Connection.AutoMigrate(models.AllModels...)
 	cmd.Execute()
 }
