@@ -5,6 +5,8 @@ import (
 	"os/signal"
 	"streambot/bot/commands"
 	"streambot/config"
+	"streambot/models"
+	"streambot/query"
 	"sync"
 	"syscall"
 
@@ -20,11 +22,10 @@ type Bot interface {
 }
 
 type bot struct {
-	session            *discordgo.Session
-	conf               *config.Config
-	channel            chan os.Signal
-	initOnce           sync.Once
-	registeredCommands []*discordgo.ApplicationCommand
+	session  *discordgo.Session
+	conf     *config.Config
+	channel  chan os.Signal
+	initOnce sync.Once
 }
 
 func New(conf *config.Config) (Bot, error) {
@@ -34,6 +35,10 @@ func New(conf *config.Config) (Bot, error) {
 
 func (b *bot) Start() error {
 	b.init()
+
+	// cleanup. should do nothing on a clean start,
+	// but unregister any lingering commands from a dirty start
+	b.unregisterCommands()
 
 	err := b.registerCommands()
 	if err != nil {
@@ -61,27 +66,25 @@ func (b *bot) Stop() {
 
 func (b *bot) registerCommands() error {
 	commandList := commands.GetCommands()
-	b.registeredCommands = make([]*discordgo.ApplicationCommand, len(commandList))
 
-	for i, c := range commandList {
+	for _, c := range commandList {
 		reg, err := b.session.ApplicationCommandCreate(b.session.State.User.ID, b.conf.GuildID, c)
 		if err != nil {
 			return err
 		}
-		b.registeredCommands[i] = reg
+		query.RegisteredCommand.Create(&models.RegisteredCommand{ID: reg.ID, GuildID: reg.GuildID})
 	}
 	return nil
 }
 
 func (b *bot) unregisterCommands() error {
-	// unsafe:
-	// registeredCommands, err := b.session.ApplicationCommands(b.session.State.User.ID, guildID)
-	// if err != nil {
-	// 	return err
-	// }
+	allcommands, err := query.RegisteredCommand.Find()
+	if err != nil {
+		return err
+	}
 
-	for _, c := range b.registeredCommands {
-		err := b.session.ApplicationCommandDelete(b.session.State.User.ID, b.conf.GuildID, c.ID)
+	for _, c := range allcommands {
+		err = b.session.ApplicationCommandDelete(b.session.State.User.ID, c.GuildID, c.ID)
 		if err != nil {
 			return err
 		}
