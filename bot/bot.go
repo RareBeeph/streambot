@@ -10,6 +10,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/nicklaw5/helix/v2"
 	"github.com/rs/zerolog/log"
 
 	"github.com/bwmarrin/discordgo"
@@ -26,11 +27,23 @@ type bot struct {
 	conf     *config.Config
 	channel  chan os.Signal
 	initOnce sync.Once
+
+	Twitch struct {
+		client *helix.Client
+	}
 }
 
 func New(conf *config.Config) (Bot, error) {
 	session, err := discordgo.New("Bot " + conf.Token)
-	return &bot{session: session, conf: conf}, err
+	b := &bot{session: session, conf: conf}
+	if err != nil {
+		return b, err
+	}
+
+	b.Twitch.client, err = helix.NewClient(&helix.Options{
+		ClientID: "your-client-id",
+	})
+	return b, err
 }
 
 func (b *bot) Start() error {
