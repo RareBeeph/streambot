@@ -28,22 +28,24 @@ type bot struct {
 	channel  chan os.Signal
 	initOnce sync.Once
 
-	Twitch struct {
-		client *helix.Client
-	}
+	twitch *helix.Client
 }
 
-func New(conf *config.Config) (Bot, error) {
-	session, err := discordgo.New("Bot " + conf.Token)
-	b := &bot{session: session, conf: conf}
+func New(conf *config.Config) (b Bot, err error) {
+	discord, err := discordgo.New("Bot " + conf.Token)
 	if err != nil {
-		return b, err
+		return
 	}
 
-	b.Twitch.client, err = helix.NewClient(&helix.Options{
+	twitch, err := helix.NewClient(&helix.Options{
 		ClientID: "your-client-id",
 	})
-	return b, err
+	if err != nil {
+		return
+	}
+
+	b = &bot{session: discord, conf: conf, twitch: twitch}
+	return
 }
 
 func (b *bot) Start() error {
