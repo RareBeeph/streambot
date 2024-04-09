@@ -38,7 +38,7 @@ func New(conf *config.Config) (b Bot, err error) {
 	}
 
 	twitch, err := helix.NewClient(&helix.Options{
-		ClientID: "your-client-id",
+		ClientID: conf.Twitch.ClientID,
 	})
 	if err != nil {
 		return
