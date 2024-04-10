@@ -38,11 +38,19 @@ func New(conf *config.Config) (b Bot, err error) {
 	}
 
 	twitch, err := helix.NewClient(&helix.Options{
-		ClientID: conf.Twitch.ClientID,
+		ClientID:     conf.Twitch.ClientID,
+		ClientSecret: conf.Twitch.ClientSecret,
 	})
 	if err != nil {
 		return
 	}
+
+	resp, err := twitch.RequestAppAccessToken([]string{"user:read:email"})
+	if err != nil {
+		return
+	}
+
+	twitch.SetAppAccessToken(resp.Data.AccessToken)
 
 	b = &bot{session: discord, conf: conf, twitch: twitch}
 	return
@@ -59,6 +67,15 @@ func (b *bot) Start() error {
 	if err != nil {
 		return err
 	}
+
+	// temp
+	resp, err := b.twitch.GetGames(&helix.GamesParams{
+		Names: []string{"Sea of Thieves", "Fortnite"},
+	})
+	if err != nil {
+		log.Print(err)
+	}
+	log.Print(resp.Data.Games)
 
 	signal.Notify(b.channel, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	return nil
