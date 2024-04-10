@@ -31,6 +31,7 @@ func newRegisteredCommand(db *gorm.DB, opts ...gen.DOOption) registeredCommand {
 	_registeredCommand.CreatedAt = field.NewTime(tableName, "created_at")
 	_registeredCommand.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_registeredCommand.DeletedAt = field.NewField(tableName, "deleted_at")
+	_registeredCommand.GuildID = field.NewString(tableName, "guild_id")
 
 	_registeredCommand.fillFieldMap()
 
@@ -45,6 +46,7 @@ type registeredCommand struct {
 	CreatedAt field.Time
 	UpdatedAt field.Time
 	DeletedAt field.Field
+	GuildID   field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -65,6 +67,7 @@ func (r *registeredCommand) updateTableName(table string) *registeredCommand {
 	r.CreatedAt = field.NewTime(table, "created_at")
 	r.UpdatedAt = field.NewTime(table, "updated_at")
 	r.DeletedAt = field.NewField(table, "deleted_at")
+	r.GuildID = field.NewString(table, "guild_id")
 
 	r.fillFieldMap()
 
@@ -81,11 +84,12 @@ func (r *registeredCommand) GetFieldByName(fieldName string) (field.OrderExpr, b
 }
 
 func (r *registeredCommand) fillFieldMap() {
-	r.fieldMap = make(map[string]field.Expr, 4)
+	r.fieldMap = make(map[string]field.Expr, 5)
 	r.fieldMap["id"] = r.ID
 	r.fieldMap["created_at"] = r.CreatedAt
 	r.fieldMap["updated_at"] = r.UpdatedAt
 	r.fieldMap["deleted_at"] = r.DeletedAt
+	r.fieldMap["guild_id"] = r.GuildID
 }
 
 func (r registeredCommand) clone(db *gorm.DB) registeredCommand {

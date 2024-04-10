@@ -17,25 +17,33 @@ import (
 
 var (
 	Q                 = new(Query)
+	Message           *message
 	RegisteredCommand *registeredCommand
+	Subscription      *subscription
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
+	Message = &Q.Message
 	RegisteredCommand = &Q.RegisteredCommand
+	Subscription = &Q.Subscription
 }
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
 		db:                db,
+		Message:           newMessage(db, opts...),
 		RegisteredCommand: newRegisteredCommand(db, opts...),
+		Subscription:      newSubscription(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
+	Message           message
 	RegisteredCommand registeredCommand
+	Subscription      subscription
 }
 
 func (q *Query) Available() bool { return q.db != nil }
@@ -43,7 +51,9 @@ func (q *Query) Available() bool { return q.db != nil }
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:                db,
+		Message:           q.Message.clone(db),
 		RegisteredCommand: q.RegisteredCommand.clone(db),
+		Subscription:      q.Subscription.clone(db),
 	}
 }
 
@@ -58,17 +68,23 @@ func (q *Query) WriteDB() *Query {
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
 		db:                db,
+		Message:           q.Message.replaceDB(db),
 		RegisteredCommand: q.RegisteredCommand.replaceDB(db),
+		Subscription:      q.Subscription.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
+	Message           IMessageDo
 	RegisteredCommand IRegisteredCommandDo
+	Subscription      ISubscriptionDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
+		Message:           q.Message.WithContext(ctx),
 		RegisteredCommand: q.RegisteredCommand.WithContext(ctx),
+		Subscription:      q.Subscription.WithContext(ctx),
 	}
 }
 
