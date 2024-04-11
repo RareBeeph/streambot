@@ -23,16 +23,16 @@ var subscribeCmd = &Definition{
 	},
 	Handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		options := i.ApplicationCommandData().Options
-		// very much not permanent handling behavior
-		filter := " "
-		if len(options) == 2 {
-			filter += options[1].StringValue()
+
+		optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+		for _, opt := range options {
+			optionMap[opt.Name] = opt
 		}
 
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: options[0].StringValue() + filter,
+				Content: optionMap["game_name"].StringValue() + " " + optionMap["optional_filter"].StringValue(),
 			},
 		})
 	},
