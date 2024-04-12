@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"streambot/bot/commands"
+	"streambot/bot/twitch"
 	"streambot/config"
 	"streambot/models"
 	"streambot/query"
@@ -27,8 +28,6 @@ type bot struct {
 	conf     *config.Config
 	channel  chan os.Signal
 	initOnce sync.Once
-
-	twitch *helix.Client
 }
 
 func New(conf *config.Config) (b Bot, err error) {
@@ -37,22 +36,9 @@ func New(conf *config.Config) (b Bot, err error) {
 		return
 	}
 
-	twitch, err := helix.NewClient(&helix.Options{
-		ClientID:     conf.Twitch.ClientID,
-		ClientSecret: conf.Twitch.ClientSecret,
-	})
-	if err != nil {
-		return
-	}
+	twitch.LoadInConfig(conf)
 
-	resp, err := twitch.RequestAppAccessToken([]string{"user:read:email"})
-	if err != nil {
-		return
-	}
-
-	twitch.SetAppAccessToken(resp.Data.AccessToken)
-
-	b = &bot{session: discord, conf: conf, twitch: twitch}
+	b = &bot{session: discord, conf: conf}
 	return
 }
 
@@ -69,7 +55,7 @@ func (b *bot) Start() error {
 	}
 
 	// temp
-	resp, err := b.twitch.GetGames(&helix.GamesParams{
+	resp, err := twitch.Client.GetGames(&helix.GamesParams{
 		Names: []string{"Sea of Thieves", "Fortnite"},
 	})
 	if err != nil {
