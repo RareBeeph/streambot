@@ -8,7 +8,7 @@ import (
 )
 
 var unsubscribeCmd = &Definition{
-	Name: "asdf", // "unsubscribe" was apparently an invalid command name
+	Name: "unsubscribe",
 	Base: &discordgo.ApplicationCommand{
 		Description: "Unsubscribe from a command by index (use /subscriptions to check indices)",
 		Options: []*discordgo.ApplicationCommandOption{
