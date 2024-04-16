@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"log"
+	"fmt"
 	"streambot/bot/twitch"
 	"streambot/models"
 	"streambot/query"
@@ -40,12 +40,14 @@ var subscribeCmd = &Definition{
 		gamesResponse, err := twitch.Client.GetGames(&helix.GamesParams{
 			Names: []string{optionValues["game_name"]},
 		})
+
+		var content string
 		if err != nil {
-			log.Println("I have no idea what to do here") // Temp
+			content = err.Error()
 		} else if len(gamesResponse.Data.Games) == 0 {
-			log.Println("No games found") // Temp
+			content = "No matching games found."
 		} else if len(gamesResponse.Data.Games) > 1 {
-			log.Println("More than one game with the same title???") // Temp
+			content = "More than one game found."
 		} else {
 			qs := query.Subscription
 
@@ -59,15 +61,23 @@ var subscribeCmd = &Definition{
 				ChannelID: i.ChannelID,
 			}
 
-			qs.Create(sub) // TODO: handle potential error
-			qs.Delete(sub) // Temp because I don't have an unsubscribe command yet
+			err = qs.Create(sub)
+			if err != nil {
+				content = err.Error()
+			} else {
+				q := tickQuoteHelper
+
+				content = fmt.Sprintf(`Subscription %s added for game: %s (ID: %s)`, q(fmt.Sprint(sub.ID)), q(sub.GameName), q(sub.GameID))
+				if sub.Filter != "" {
+					content += " with filter: " + q(sub.Filter)
+				}
+			}
 		}
 
-		// Temp; echo
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: optionValues["game_name"] + " " + optionValues["optional_filter"],
+				Content: content,
 			},
 		})
 	},

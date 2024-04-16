@@ -1,6 +1,8 @@
 package commands
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"github.com/bwmarrin/discordgo"
+)
 
 type handler = func(s *discordgo.Session, i *discordgo.InteractionCreate)
 
@@ -27,4 +29,8 @@ func SlashCommandRouter(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	if h, ok := handlers[i.ApplicationCommandData().Name]; ok {
 		h(s, i)
 	}
+}
+
+func tickQuoteHelper(s string) string {
+	return "`" + s + "`"
 }
