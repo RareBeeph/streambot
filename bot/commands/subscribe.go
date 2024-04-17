@@ -5,6 +5,7 @@ import (
 	"streambot/bot/twitch"
 	"streambot/models"
 	"streambot/query"
+	"streambot/util"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/nicklaw5/helix/v2"
@@ -47,7 +48,15 @@ var subscribeCmd = &Definition{
 		} else if len(gamesResponse.Data.Games) == 0 {
 			content = "No matching games found."
 		} else if len(gamesResponse.Data.Games) > 1 {
-			content = "More than one game found."
+			get_option(s, i,
+				"Which of these games did you mean?",
+				*util.Map(gamesResponse.Data.Games, func(game helix.Game, _ int) discordgo.SelectMenuOption {
+					return discordgo.SelectMenuOption{
+						Label: game.Name,
+						Value: game.ID,
+					}
+				}),
+			)
 		} else {
 			qs := query.Subscription
 
