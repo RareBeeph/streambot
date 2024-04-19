@@ -26,6 +26,10 @@ func Register(cmd *Definition) {
 }
 
 func SlashCommandRouter(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	if i.Type != discordgo.InteractionApplicationCommand {
+		return
+	}
+
 	if h, ok := handlers[i.ApplicationCommandData().Name]; ok {
 		h(s, i)
 	}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/nicklaw5/helix/v2"
+	"github.com/rs/zerolog/log"
 )
 
 var subscribeCmd = &Definition{
@@ -43,24 +44,37 @@ var subscribeCmd = &Definition{
 		})
 
 		var content string
+		var game helix.Game
+		responseType := "respond"
 		if err != nil {
 			content = err.Error()
 		} else if len(gamesResponse.Data.Games) == 0 {
 			content = "No matching games found."
-		} else if len(gamesResponse.Data.Games) > 1 {
-			get_option(s, i,
+		} else if len(gamesResponse.Data.Games) >= 1 {
+			selectedGameID := get_option(s, i,
 				"Which of these games did you mean?",
 				*util.Map(gamesResponse.Data.Games, func(game helix.Game, _ int) discordgo.SelectMenuOption {
 					return discordgo.SelectMenuOption{
-						Label: game.Name,
+						Emoji: discordgo.ComponentEmoji{
+							Name: "🦦",
+						},
+						Label: game.Name + " (ID: " + game.ID + ")",
 						Value: game.ID,
 					}
 				}),
 			)
+			for _, g := range gamesResponse.Data.Games {
+				if g.ID == selectedGameID {
+					game = g
+				}
+			}
+			responseType = "edit"
 		} else {
-			qs := query.Subscription
+			game = gamesResponse.Data.Games[0]
+		}
 
-			game := gamesResponse.Data.Games[0]
+		if (game != helix.Game{}) {
+			qs := query.Subscription
 
 			sub := &models.Subscription{
 				GameName:  game.Name,
@@ -83,12 +97,21 @@ var subscribeCmd = &Definition{
 			}
 		}
 
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: content,
-			},
-		})
+		if responseType == "respond" {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: content,
+				},
+			})
+		} else if responseType == "edit" {
+			_, err := s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+				Content:    &content,
+				Components: nil,
+			})
+			log.Print(content)
+			log.Print(err)
+		}
 	},
 }
 

@@ -45,14 +45,20 @@ func New(conf *config.Config) (b Bot, err error) {
 func (b *bot) Start() error {
 	b.init()
 
+	log.Print("Temp: Ungegistering Commands")
+
 	// cleanup. should do nothing on a clean start,
 	// but unregister any lingering commands from a dirty start
 	b.unregisterCommands()
+
+	log.Print("Temp: Registering Commands")
 
 	err := b.registerCommands()
 	if err != nil {
 		return err
 	}
+
+	log.Print("Temp: Temp twitch test")
 
 	// temp
 	resp, err := twitch.Client.GetGames(&helix.GamesParams{
@@ -86,10 +92,15 @@ func (b *bot) registerCommands() error {
 	commandList := commands.GetCommands()
 
 	for _, c := range commandList {
+		log.Print("Temp: Discord")
+
 		reg, err := b.session.ApplicationCommandCreate(b.session.State.User.ID, b.conf.GuildID, c)
 		if err != nil {
+			log.Print(err)
 			return err
 		}
+
+		log.Print("Temp: Query")
 
 		err = query.RegisteredCommand.Create(&models.RegisteredCommand{ID: reg.ID, GuildID: reg.GuildID})
 		if err != nil {
