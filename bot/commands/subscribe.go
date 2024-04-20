@@ -9,7 +9,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/nicklaw5/helix/v2"
-	"github.com/rs/zerolog/log"
 )
 
 var subscribeCmd = &Definition{
@@ -50,13 +49,13 @@ var subscribeCmd = &Definition{
 			content = err.Error()
 		} else if len(gamesResponse.Data.Games) == 0 {
 			content = "No matching games found."
-		} else if len(gamesResponse.Data.Games) >= 1 {
+		} else if len(gamesResponse.Data.Games) > 1 {
 			selectedGameID := get_option(s, i,
 				"Which of these games did you mean?",
 				*util.Map(gamesResponse.Data.Games, func(game helix.Game, _ int) discordgo.SelectMenuOption {
 					return discordgo.SelectMenuOption{
 						Emoji: discordgo.ComponentEmoji{
-							Name: "🦦",
+							Name: "🦦", // temp emoji
 						},
 						Label: game.Name + " (ID: " + game.ID + ")",
 						Value: game.ID,
@@ -90,7 +89,7 @@ var subscribeCmd = &Definition{
 			} else {
 				q := tickQuoteHelper
 
-				content = fmt.Sprintf(`Subscription %s added for game: %s (ID: %s)`, q(fmt.Sprint(sub.ID)), q(sub.GameName), q(sub.GameID))
+				content = fmt.Sprintf(`Subscription added for game: %s (ID: %s)`, q(sub.GameName), q(sub.GameID))
 				if sub.Filter != "" {
 					content += " with filter: " + q(sub.Filter)
 				}
@@ -105,12 +104,10 @@ var subscribeCmd = &Definition{
 				},
 			})
 		} else if responseType == "edit" {
-			_, err := s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 				Content:    &content,
-				Components: nil,
+				Components: &[]discordgo.MessageComponent{},
 			})
-			log.Print(content)
-			log.Print(err)
 		}
 	},
 }

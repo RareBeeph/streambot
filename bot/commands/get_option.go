@@ -51,5 +51,5 @@ func get_option(s *discordgo.Session, i *discordgo.InteractionCreate, prompt str
 		return v
 	}
 
-	return "ech"
+	return ""
 }
