@@ -50,36 +50,32 @@ var unsubscribeCmd = &Definition{
 		)
 
 		// This func just exists as a layer from which to only partially return on error
-		func() {
-			if selectedSub == "" {
-				content = "Error: Somehow, the selected subscription had no ID."
-				return
+		err = (func() error {
+			// Ignoring error as we generated these ourselves
+			subid, _ := strconv.ParseUint(selectedSub, 10, 32)
+
+			sub, err := qs.Where(qs.ID.Eq(uint(subid))).First()
+			if err != nil {
+				return err
 			}
 
-			subid, err := strconv.ParseUint(selectedSub, 10, 32)
+			_, err = qs.Delete(sub)
 			if err != nil {
-				content = err.Error()
-				return
-			}
-
-			temp, err := qs.Where(qs.ID.Eq(uint(subid))).First()
-			if err != nil {
-				content = err.Error()
-				return
-			}
-
-			_, err = qs.Delete(temp)
-			if err != nil {
-				content = err.Error()
-				return
+				return err
 			}
 
 			q := tickQuoteHelper
-			content = fmt.Sprintf(`Unsubscribed from subscription--Game: %s`, q(temp.GameName))
-			if temp.Filter != "" {
-				content += q(temp.Filter)
+			content = fmt.Sprintf(`Unsubscribed from subscription--Game: %s`, q(sub.GameName))
+			if sub.Filter != "" {
+				content += q(sub.Filter)
 			}
-		}()
+
+			return nil
+		})()
+
+		if err != nil {
+			content = err.Error()
+		}
 
 		s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 			Content:    &content,
