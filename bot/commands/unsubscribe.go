@@ -50,27 +50,27 @@ var unsubscribeCmd = &Definition{
 		)
 
 		// This func just exists as a layer from which to only partially return on error
-		err = (func() error {
+		content, err = (func() (string, error) {
 			// Ignoring error as we generated these ourselves
 			subid, _ := strconv.ParseUint(selectedSub, 10, 32)
 
 			sub, err := qs.Where(qs.ID.Eq(uint(subid))).First()
 			if err != nil {
-				return err
+				return "", err
 			}
 
 			_, err = qs.Delete(sub)
 			if err != nil {
-				return err
+				return "", err
 			}
 
 			q := tickQuoteHelper
-			content = fmt.Sprintf(`Unsubscribed from subscription--Game: %s`, q(sub.GameName))
+			out := fmt.Sprintf(`Unsubscribed from subscription--Game: %s`, q(sub.GameName))
 			if sub.Filter != "" {
-				content += q(sub.Filter)
+				out += q(sub.Filter)
 			}
 
-			return nil
+			return out, nil
 		})()
 
 		if err != nil {
