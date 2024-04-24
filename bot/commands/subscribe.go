@@ -48,7 +48,7 @@ var subscribeCmd = &Definition{
 			content = err.Error()
 		} else if len(gamesResponse.Data.Games) == 0 {
 			content = "No matching games found."
-		} else if len(gamesResponse.Data.Games) >= 1 {
+		} else if len(gamesResponse.Data.Games) > 1 {
 			var selectedGameID string
 			selectedGameID, i = get_option(s, i,
 				"Which of these games did you mean?",
