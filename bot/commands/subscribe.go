@@ -44,13 +44,13 @@ var subscribeCmd = &Definition{
 
 		var content string
 		var game helix.Game
-		responseType := "respond"
 		if err != nil {
 			content = err.Error()
 		} else if len(gamesResponse.Data.Games) == 0 {
 			content = "No matching games found."
-		} else if len(gamesResponse.Data.Games) > 1 {
-			selectedGameID := get_option(s, i,
+		} else if len(gamesResponse.Data.Games) >= 1 {
+			var selectedGameID string
+			selectedGameID, i = get_option(s, i,
 				"Which of these games did you mean?",
 				*util.Map(gamesResponse.Data.Games, func(game helix.Game, _ int) discordgo.SelectMenuOption {
 					return discordgo.SelectMenuOption{
@@ -67,7 +67,6 @@ var subscribeCmd = &Definition{
 					game = g
 				}
 			}
-			responseType = "edit"
 		} else {
 			game = gamesResponse.Data.Games[0]
 		}
@@ -96,19 +95,12 @@ var subscribeCmd = &Definition{
 			}
 		}
 
-		if responseType == "respond" {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: content,
-				},
-			})
-		} else if responseType == "edit" {
-			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-				Content:    &content,
-				Components: &[]discordgo.MessageComponent{},
-			})
-		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: content,
+			},
+		})
 	},
 }
 

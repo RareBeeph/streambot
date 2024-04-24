@@ -33,7 +33,7 @@ var unsubscribeCmd = &Definition{
 			return
 		}
 
-		selectedSub := get_option(s, i, "Which active subscription would you like to remove?",
+		selectedSub, i := get_option(s, i, "Which active subscription would you like to remove?",
 			*util.Map(allsubs, func(sub *models.Subscription, _ int) discordgo.SelectMenuOption {
 				label := sub.GameName + " (ID: " + sub.GameID + ")"
 				if sub.Filter != "" {
@@ -72,9 +72,11 @@ var unsubscribeCmd = &Definition{
 			msg = err.Error()
 		}
 
-		s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-			Content:    &msg,
-			Components: &[]discordgo.MessageComponent{},
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: msg,
+			},
 		})
 	},
 }
