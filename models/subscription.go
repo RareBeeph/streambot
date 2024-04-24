@@ -1,6 +1,10 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"fmt"
+
+	"gorm.io/gorm"
+)
 
 type Subscription struct {
 	gorm.Model
@@ -11,6 +15,15 @@ type Subscription struct {
 	ChannelID string
 
 	Messages []Message
+}
+
+func (s *Subscription) String() string {
+	out := fmt.Sprintf("Game: `%s`", s.GameName)
+	if s.Filter != "" {
+		out += fmt.Sprintf(" | Filter: `%s`", s.Filter)
+	}
+
+	return out
 }
 
 func init() {

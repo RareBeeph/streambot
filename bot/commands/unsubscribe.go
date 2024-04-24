@@ -17,16 +17,17 @@ var unsubscribeCmd = &Definition{
 	},
 	Handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		qs := query.Subscription
+
 		allsubs, err := qs.Find()
-		var content string
-		if err != nil {
-			content = err.Error()
-		}
-		if len(allsubs) == 0 {
+		if len(allsubs) == 0 || err != nil {
+			msg := "No active subscriptions"
+			if err != nil {
+				msg = err.Error()
+			}
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: "No active subscriptions.",
+					Content: msg,
 				},
 			})
 			return
@@ -50,7 +51,7 @@ var unsubscribeCmd = &Definition{
 		)
 
 		// This func just exists as a layer from which to only partially return on error
-		content, err = (func() (string, error) {
+		msg, err := (func() (string, error) {
 			// Ignoring error as we generated these ourselves
 			subid, _ := strconv.ParseUint(selectedSub, 10, 32)
 
@@ -64,21 +65,15 @@ var unsubscribeCmd = &Definition{
 				return "", err
 			}
 
-			q := tickQuoteHelper
-			out := fmt.Sprintf(`Unsubscribed from subscription--Game: %s`, q(sub.GameName))
-			if sub.Filter != "" {
-				out += q(sub.Filter)
-			}
-
-			return out, nil
+			return fmt.Sprintf(`Unsubscribed from subscription--%s`, sub), nil
 		})()
 
 		if err != nil {
-			content = err.Error()
+			msg = err.Error()
 		}
 
 		s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-			Content:    &content,
+			Content:    &msg,
 			Components: &[]discordgo.MessageComponent{},
 		})
 	},
