@@ -5,6 +5,7 @@ go 1.22.1
 require (
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/nicklaw5/helix/v2 v2.28.1
+	github.com/robfig/cron/v3 v3.0.0
 	github.com/rs/zerolog v1.32.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2

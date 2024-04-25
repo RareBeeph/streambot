@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"streambot/bot/commands"
+	"streambot/bot/tasks"
 	"streambot/bot/twitch"
 	"streambot/config"
 	"streambot/models"
@@ -12,6 +13,7 @@ import (
 	"syscall"
 
 	"github.com/nicklaw5/helix/v2"
+	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog/log"
 
 	"github.com/bwmarrin/discordgo"
@@ -24,10 +26,11 @@ type Bot interface {
 }
 
 type bot struct {
-	session  *discordgo.Session
-	conf     *config.Config
-	channel  chan os.Signal
-	initOnce sync.Once
+	session   *discordgo.Session
+	conf      *config.Config
+	channel   chan os.Signal
+	scheduler *cron.Cron
+	initOnce  sync.Once
 }
 
 func New(conf *config.Config) (b Bot, err error) {
@@ -139,6 +142,11 @@ func (b *bot) init() {
 		}
 
 		b.channel = make(chan os.Signal, 1)
+
+		b.scheduler = cron.New()
+		for _, t := range tasks.AllTasks {
+			b.scheduler.AddFunc(t.CronSpec, t.CronFunc)
+		}
 	})
 }
 
