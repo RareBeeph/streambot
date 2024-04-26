@@ -15,7 +15,7 @@ type Definition struct {
 var commands = []*discordgo.ApplicationCommand{}
 var handlers = map[string]handler{}
 
-func GetCommands() []*discordgo.ApplicationCommand {
+func All() []*discordgo.ApplicationCommand {
 	return commands
 }
 

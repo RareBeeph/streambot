@@ -86,7 +86,7 @@ func (b *bot) Stop() {
 }
 
 func (b *bot) registerCommands() error {
-	commandList := commands.GetCommands()
+	commandList := commands.All()
 
 	for _, c := range commandList {
 		reg, err := b.session.ApplicationCommandCreate(b.session.State.User.ID, b.conf.GuildID, c)
