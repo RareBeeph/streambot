@@ -10,5 +10,5 @@ type Message struct {
 }
 
 func init() {
-	AllModels = append(AllModels, Message{})
+	All = append(All, Message{})
 }

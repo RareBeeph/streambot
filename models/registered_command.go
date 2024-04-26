@@ -9,5 +9,5 @@ type RegisteredCommand struct {
 }
 
 func init() {
-	AllModels = append(AllModels, RegisteredCommand{})
+	All = append(All, RegisteredCommand{})
 }

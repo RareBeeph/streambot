@@ -27,5 +27,5 @@ func (s *Subscription) String() string {
 }
 
 func init() {
-	AllModels = append(AllModels, Subscription{})
+	All = append(All, Subscription{})
 }

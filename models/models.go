@@ -1,3 +1,3 @@
 package models
 
-var AllModels = []any{}
+var All = []any{}

@@ -32,6 +32,6 @@ import (
 
 func main() {
 	query.SetDefault(db.Connection)
-	db.Connection.AutoMigrate(models.AllModels...)
+	db.Connection.AutoMigrate(models.All...)
 	cmd.Execute()
 }
