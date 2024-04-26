@@ -1,8 +1,8 @@
 package tasks
 
 type Task struct {
-	CronSpec string
-	CronFunc func()
+	Spec    string
+	Handler func()
 }
 
 var All = []Task{}

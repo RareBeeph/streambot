@@ -145,7 +145,7 @@ func (b *bot) init() {
 
 		b.scheduler = cron.New()
 		for _, t := range tasks.All {
-			b.scheduler.AddFunc(t.CronSpec, t.CronFunc)
+			b.scheduler.AddFunc(t.Spec, t.Handler)
 		}
 	})
 }
