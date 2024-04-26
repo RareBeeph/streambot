@@ -144,7 +144,7 @@ func (b *bot) init() {
 		b.channel = make(chan os.Signal, 1)
 
 		b.scheduler = cron.New()
-		for _, t := range tasks.AllTasks {
+		for _, t := range tasks.All {
 			b.scheduler.AddFunc(t.CronSpec, t.CronFunc)
 		}
 	})

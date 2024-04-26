@@ -5,4 +5,4 @@ type Task struct {
 	CronFunc func()
 }
 
-var AllTasks = []Task{}
+var All = []Task{}
