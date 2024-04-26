@@ -8,7 +8,7 @@ import (
 
 var Client *helix.Client
 
-func LoadInConfig(conf *config.Config) {
+func LoadConfig(conf *config.Config) {
 	var err error
 	Client, err = helix.NewClient(&helix.Options{
 		ClientID:     conf.Twitch.ClientID,

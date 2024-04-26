@@ -39,7 +39,7 @@ func New(conf *config.Config) (b Bot, err error) {
 		return
 	}
 
-	twitch.LoadInConfig(conf)
+	twitch.LoadConfig(conf)
 
 	b = &bot{session: discord, conf: conf}
 	return
