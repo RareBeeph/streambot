@@ -19,6 +19,7 @@ var (
 	Q                 = new(Query)
 	Message           *message
 	RegisteredCommand *registeredCommand
+	Stream            *stream
 	Subscription      *subscription
 )
 
@@ -26,6 +27,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
 	Message = &Q.Message
 	RegisteredCommand = &Q.RegisteredCommand
+	Stream = &Q.Stream
 	Subscription = &Q.Subscription
 }
 
@@ -34,6 +36,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		db:                db,
 		Message:           newMessage(db, opts...),
 		RegisteredCommand: newRegisteredCommand(db, opts...),
+		Stream:            newStream(db, opts...),
 		Subscription:      newSubscription(db, opts...),
 	}
 }
@@ -43,6 +46,7 @@ type Query struct {
 
 	Message           message
 	RegisteredCommand registeredCommand
+	Stream            stream
 	Subscription      subscription
 }
 
@@ -53,6 +57,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		db:                db,
 		Message:           q.Message.clone(db),
 		RegisteredCommand: q.RegisteredCommand.clone(db),
+		Stream:            q.Stream.clone(db),
 		Subscription:      q.Subscription.clone(db),
 	}
 }
@@ -70,6 +75,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		db:                db,
 		Message:           q.Message.replaceDB(db),
 		RegisteredCommand: q.RegisteredCommand.replaceDB(db),
+		Stream:            q.Stream.replaceDB(db),
 		Subscription:      q.Subscription.replaceDB(db),
 	}
 }
@@ -77,6 +83,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 type queryCtx struct {
 	Message           IMessageDo
 	RegisteredCommand IRegisteredCommandDo
+	Stream            IStreamDo
 	Subscription      ISubscriptionDo
 }
 
@@ -84,6 +91,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
 		Message:           q.Message.WithContext(ctx),
 		RegisteredCommand: q.RegisteredCommand.WithContext(ctx),
+		Stream:            q.Stream.WithContext(ctx),
 		Subscription:      q.Subscription.WithContext(ctx),
 	}
 }

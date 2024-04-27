@@ -64,6 +64,7 @@ to quickly create a Cobra application.`,
 
 		b.Wait()
 		b.Stop()
+		log.Info().Msg("Shutting down.")
 	},
 }
 

@@ -12,7 +12,6 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/nicklaw5/helix/v2"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog/log"
 
@@ -57,14 +56,8 @@ func (b *bot) Start() error {
 		return err
 	}
 
-	// temp
-	resp, err := twitch.Client.GetGames(&helix.GamesParams{
-		Names: []string{"Sea of Thieves", "Fortnite"},
-	})
-	if err != nil {
-		log.Print(err)
-	}
-	log.Print(resp.Data.Games)
+	tasks.All[0].Handler() // temp; we are gonna want to run some of our tasks on startup though
+	b.scheduler.Start()
 
 	signal.Notify(b.channel, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	return nil
@@ -79,10 +72,10 @@ func (b *bot) Stop() {
 	b.init()
 
 	b.unregisterCommands()
+	b.scheduler.Stop()
 
 	log.Info().Msg("Closing session...")
 	b.session.Close() // Technically returns an error but the app is closing anyways
-	log.Info().Msg("Shutting down.")
 }
 
 func (b *bot) registerCommands() error {
