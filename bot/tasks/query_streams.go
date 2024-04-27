@@ -4,7 +4,6 @@ import (
 	"streambot/bot/twitch"
 	"streambot/models"
 	"streambot/query"
-	"streambot/util"
 
 	"github.com/jinzhu/copier"
 	"github.com/nicklaw5/helix/v2"
@@ -14,17 +13,13 @@ import (
 var queryStreams = Task{
 	Spec: "*/5 * * * *",
 	Handler: func() {
-		subscriptions, _ := query.Subscription.Find() // err unhandled
-		if len(subscriptions) == 0 {
-			return
-		}
+		qs := query.Subscription
 
-		GameIDs := *util.Map(subscriptions, func(s *models.Subscription, i int) string {
-			return s.GameID
-		})
+		gameIDs := make([]string, 0)
+		qs.Distinct(qs.GameID).Pluck(qs.GameID, gameIDs)
 
 		resp, err := twitch.Client.GetStreams(&helix.StreamsParams{
-			GameIDs: GameIDs,
+			GameIDs: gameIDs,
 		})
 		if err != nil {
 			log.Print(err)
