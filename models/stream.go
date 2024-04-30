@@ -7,6 +7,7 @@ type Stream struct {
 	UserID   string `copier:"must"`
 	UserName string `copier:"must"`
 	Title    string `copier:"must"`
+	GameID   string `copier:"must"`
 }
 
 func init() {

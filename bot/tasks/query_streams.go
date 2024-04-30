@@ -14,24 +14,39 @@ var queryStreams = Task{
 	Spec: "*/5 * * * *",
 	Handler: func() {
 		qs := query.Subscription
+		qst := query.Stream
 
 		gameIDs := make([]string, 0)
-		qs.Distinct(qs.GameID).Pluck(qs.GameID, gameIDs)
+		err := qs.Distinct(qs.GameID).Pluck(qs.GameID, &gameIDs)
+		if err != nil {
+			log.Err(err).Msg("Failed to pluck game IDs.")
+			return
+		}
 
 		resp, err := twitch.Client.GetStreams(&helix.StreamsParams{
 			GameIDs: gameIDs,
 		})
 		if err != nil {
-			log.Print(err)
-			return // idk what to do here yet
+			log.Err(err).Msg("Failed to fetch streams")
+			return
 		}
 
-		for _, s := range resp.Data.Streams {
-			stream := &models.Stream{}
-			copier.Copy(stream, s)      // err unhandled
-			query.Stream.Create(stream) // err unhandled
-			log.Print(stream)           // making sure i know what's going on
-			query.Stream.Delete(stream) // temp cleanup
+		streams := make([]*models.Stream, len(resp.Data.Streams))
+		err = copier.Copy(&streams, &resp.Data.Streams)
+		if err != nil {
+			log.Err(err).Msg("Debug: failed to copy streams. This should never happen.")
+			return
+		}
+
+		_, err = qst.Unscoped().Where(qst.GameID.In(gameIDs...)).Delete()
+		if err != nil {
+			log.Err(err).Msg("Failed to properly clear stale streams.")
+			return
+		}
+
+		err = qst.Create(streams...)
+		if err != nil {
+			log.Err(err).Msg("Failed to update stream list.")
 		}
 	},
 }
