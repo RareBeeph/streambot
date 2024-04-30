@@ -34,7 +34,7 @@ var queryStreams = Task{
 		streams := make([]*models.Stream, len(resp.Data.Streams))
 		err = copier.Copy(&streams, &resp.Data.Streams)
 		if err != nil {
-			log.Err(err).Msg("Debug: failed to copy streams. This should never happen.")
+			log.Err(err).Msg("Failed to copy streams.")
 			return
 		}
 
