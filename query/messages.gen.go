@@ -32,6 +32,7 @@ func newMessage(db *gorm.DB, opts ...gen.DOOption) message {
 	_message.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_message.DeletedAt = field.NewField(tableName, "deleted_at")
 	_message.MessageID = field.NewString(tableName, "message_id")
+	_message.UserID = field.NewString(tableName, "user_id")
 	_message.SubscriptionID = field.NewUint(tableName, "subscription_id")
 
 	_message.fillFieldMap()
@@ -48,6 +49,7 @@ type message struct {
 	UpdatedAt      field.Time
 	DeletedAt      field.Field
 	MessageID      field.String
+	UserID         field.String
 	SubscriptionID field.Uint
 
 	fieldMap map[string]field.Expr
@@ -70,6 +72,7 @@ func (m *message) updateTableName(table string) *message {
 	m.UpdatedAt = field.NewTime(table, "updated_at")
 	m.DeletedAt = field.NewField(table, "deleted_at")
 	m.MessageID = field.NewString(table, "message_id")
+	m.UserID = field.NewString(table, "user_id")
 	m.SubscriptionID = field.NewUint(table, "subscription_id")
 
 	m.fillFieldMap()
@@ -87,12 +90,13 @@ func (m *message) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (m *message) fillFieldMap() {
-	m.fieldMap = make(map[string]field.Expr, 6)
+	m.fieldMap = make(map[string]field.Expr, 7)
 	m.fieldMap["id"] = m.ID
 	m.fieldMap["created_at"] = m.CreatedAt
 	m.fieldMap["updated_at"] = m.UpdatedAt
 	m.fieldMap["deleted_at"] = m.DeletedAt
 	m.fieldMap["message_id"] = m.MessageID
+	m.fieldMap["user_id"] = m.UserID
 	m.fieldMap["subscription_id"] = m.SubscriptionID
 }
 

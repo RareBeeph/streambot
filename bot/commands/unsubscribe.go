@@ -66,6 +66,8 @@ var unsubscribeCmd = &Definition{
 			}
 
 			return fmt.Sprintf(`Unsubscribed from subscription--%s`, sub), nil
+
+			// TODO: delete messages corresponding to the removed subscription
 		})()
 
 		if err != nil {

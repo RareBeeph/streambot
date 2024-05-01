@@ -5,6 +5,7 @@ import (
 	"streambot/models"
 	"streambot/query"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/jinzhu/copier"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/rs/zerolog/log"
@@ -12,7 +13,7 @@ import (
 
 var queryStreams = Task{
 	Spec: "*/5 * * * *",
-	Handler: func() {
+	handler: func(s *discordgo.Session) {
 		qs := query.Subscription
 		qst := query.Stream
 
@@ -48,9 +49,11 @@ var queryStreams = Task{
 		if err != nil {
 			log.Err(err).Msg("Failed to update stream list.")
 		}
+
+		updateMessages(s, streams)
 	},
 }
 
 func init() {
-	All = append(All, queryStreams)
+	All = append(All, &queryStreams)
 }

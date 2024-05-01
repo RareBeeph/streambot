@@ -56,7 +56,7 @@ func (b *bot) Start() error {
 		return err
 	}
 
-	tasks.All[0].Handler() // temp; we are gonna want to run some of our tasks on startup though
+	tasks.All[0].Run() // temp; we are gonna want to run some of our tasks on startup though
 	b.scheduler.Start()
 
 	signal.Notify(b.channel, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
@@ -138,7 +138,8 @@ func (b *bot) init() {
 
 		b.scheduler = cron.New()
 		for _, t := range tasks.All {
-			b.scheduler.AddFunc(t.Spec, t.Handler)
+			t.BindSession(b.session)
+			b.scheduler.AddFunc(t.Spec, t.Run)
 		}
 	})
 }
