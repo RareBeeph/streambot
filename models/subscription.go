@@ -8,11 +8,11 @@ import (
 
 type Subscription struct {
 	gorm.Model
-	GameID    string
+	GameID    string `gorm:"uniqueIndex:idx_channel_game_filter"`
 	GameName  string
-	Filter    string
+	Filter    string `gorm:"uniqueIndex:idx_channel_game_filter"`
 	GuildID   string
-	ChannelID string
+	ChannelID string `gorm:"uniqueIndex:idx_channel_game_filter"`
 
 	Messages []Message
 }

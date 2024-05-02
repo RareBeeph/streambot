@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"github.com/bwmarrin/discordgo"
-	"github.com/rs/zerolog/log"
 )
 
 type Task struct {
@@ -14,8 +13,6 @@ type Task struct {
 
 func (t *Task) BindSession(s *discordgo.Session) {
 	t.dg = s
-	log.Print("input: ", s)
-	log.Print("output: ", t.dg)
 }
 
 func (t *Task) Run() {
