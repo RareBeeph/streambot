@@ -35,6 +35,7 @@ func newStream(db *gorm.DB, opts ...gen.DOOption) stream {
 	_stream.UserName = field.NewString(tableName, "user_name")
 	_stream.Title = field.NewString(tableName, "title")
 	_stream.GameID = field.NewString(tableName, "game_id")
+	_stream.ViewerCount = field.NewString(tableName, "viewer_count")
 
 	_stream.fillFieldMap()
 
@@ -44,15 +45,16 @@ func newStream(db *gorm.DB, opts ...gen.DOOption) stream {
 type stream struct {
 	streamDo
 
-	ALL       field.Asterisk
-	ID        field.Uint
-	CreatedAt field.Time
-	UpdatedAt field.Time
-	DeletedAt field.Field
-	UserID    field.String
-	UserName  field.String
-	Title     field.String
-	GameID    field.String
+	ALL         field.Asterisk
+	ID          field.Uint
+	CreatedAt   field.Time
+	UpdatedAt   field.Time
+	DeletedAt   field.Field
+	UserID      field.String
+	UserName    field.String
+	Title       field.String
+	GameID      field.String
+	ViewerCount field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -77,6 +79,7 @@ func (s *stream) updateTableName(table string) *stream {
 	s.UserName = field.NewString(table, "user_name")
 	s.Title = field.NewString(table, "title")
 	s.GameID = field.NewString(table, "game_id")
+	s.ViewerCount = field.NewString(table, "viewer_count")
 
 	s.fillFieldMap()
 
@@ -93,7 +96,7 @@ func (s *stream) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (s *stream) fillFieldMap() {
-	s.fieldMap = make(map[string]field.Expr, 8)
+	s.fieldMap = make(map[string]field.Expr, 9)
 	s.fieldMap["id"] = s.ID
 	s.fieldMap["created_at"] = s.CreatedAt
 	s.fieldMap["updated_at"] = s.UpdatedAt
@@ -102,6 +105,7 @@ func (s *stream) fillFieldMap() {
 	s.fieldMap["user_name"] = s.UserName
 	s.fieldMap["title"] = s.Title
 	s.fieldMap["game_id"] = s.GameID
+	s.fieldMap["viewer_count"] = s.ViewerCount
 }
 
 func (s stream) clone(db *gorm.DB) stream {

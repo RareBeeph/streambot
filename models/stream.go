@@ -4,10 +4,11 @@ import "gorm.io/gorm"
 
 type Stream struct {
 	gorm.Model
-	UserID   string `copier:"must,nopanic"`
-	UserName string `copier:"must,nopanic"`
-	Title    string `copier:"must,nopanic"`
-	GameID   string `copier:"must,nopanic"`
+	UserID      string `copier:"must,nopanic"`
+	UserName    string `copier:"must,nopanic"`
+	Title       string `copier:"must,nopanic"`
+	GameID      string `copier:"must,nopanic"`
+	ViewerCount string `copier:"must,nopanic"`
 }
 
 func init() {
