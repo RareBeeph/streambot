@@ -50,7 +50,7 @@ var queryStreams = Task{
 			log.Err(err).Msg("Failed to update stream list.")
 		}
 
-		updateMessages(s, streams)
+		updateMessages(s)
 	},
 }
 

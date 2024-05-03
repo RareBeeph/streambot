@@ -12,9 +12,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func updateMessages(s *discordgo.Session, streams []*models.Stream) {
+func updateMessages(s *discordgo.Session) {
 	m := query.Message
 	qs := query.Subscription
+	qst := query.Stream
 
 	subscriptions, err := qs.Preload(qs.Messages).Find()
 	if err != nil {
@@ -22,11 +23,9 @@ func updateMessages(s *discordgo.Session, streams []*models.Stream) {
 	}
 
 	for _, sub := range subscriptions {
-		matchingStreams := []*models.Stream{}
-		for _, st := range streams {
-			if StreamMatchesSubscription(st, sub) {
-				matchingStreams = append(matchingStreams, st)
-			}
+		matchingStreams, err := qst.Where(qst.GameID.Eq(sub.GameID), qst.Title.Lower().Like(fmt.Sprintf("%%%s%%", sub.Filter))).Find()
+		if err != nil {
+			log.Err(err).Msg("Failed to find matching streams.")
 		}
 
 		// naive edit
