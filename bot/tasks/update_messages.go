@@ -13,6 +13,11 @@ import (
 )
 
 func updateMessages(s *discordgo.Session) {
+	type msgAction struct {
+		target  *models.Message
+		content []*discordgo.MessageEmbed
+	}
+
 	m := query.Message
 	qs := query.Subscription
 	qst := query.Stream
@@ -28,78 +33,24 @@ func updateMessages(s *discordgo.Session) {
 			log.Err(err).Msg("Failed to find matching streams.")
 		}
 
-		// naive edit
-		if len(sub.Messages) != 0 {
-			embedfields := util.Chunk(StreamsToEmbedFields(matchingStreams...), 25)
-			embeds := util.Map(embedfields, StreamsMessageEmbed)
-			messagechunks := util.Chunk(embeds, 10)
+		// The modifications we're going to make to our messages
+		actions := []*msgAction{}
 
-			// empty case
-			if len(matchingStreams) == 0 {
-				s.ChannelMessageEdit(sub.ChannelID, sub.Messages[0].MessageID, "No streams currently active.")
-			}
+		embedFields := util.Chunk(StreamsToEmbedFields(matchingStreams...), 25)
+		embeds := util.Map(embedFields, StreamsMessageEmbed)
+		messageChunks := util.Chunk(embeds, 10)
 
-			// remove excessive messages, else post needed ones
-			if len(sub.Messages) > len(messagechunks) {
-				s.ChannelMessagesBulkDelete(sub.ChannelID, util.Map(sub.Messages[len(messagechunks):], func(message models.Message, i int) string {
-					id := message.MessageID
-					m.Delete(&message)
-					return id
-				}))
-			} else if len(sub.Messages) < len(messagechunks) {
-				for idx, me := range messagechunks[len(sub.Messages):] {
-					newMessage, err := s.ChannelMessageSendComplex(sub.ChannelID, &discordgo.MessageSend{
-						Content: "Test Edit Send",
-						Embeds:  me,
-					})
-					if err != nil {
-						log.Err(err).Msg("Failed to send message in edit branch.")
-					}
-
-					m.Create(&models.Message{MessageID: newMessage.ID, SubscriptionID: sub.ID, PostOrder: idx + len(sub.Messages)})
-				}
-			}
-			sub.Messages = sub.Messages[:len(messagechunks)]
-
-			// edit existing messages
-			for i, c := range sub.Messages {
-				content := "Test Edit"
-				_, err := s.ChannelMessageEditComplex(&discordgo.MessageEdit{
-					Content: &content,
-					Embeds:  messagechunks[i],
-
-					ID:      c.MessageID,
-					Channel: sub.ChannelID,
-				})
-				if err != nil {
-					log.Err(err).Msg("Failed to edit message.")
-				}
-			}
-
-			// we're done here
-			return
+		messageCount := len(sub.Messages)
+		for idx, embed := range messageChunks {
+			// Determine what action needs to be taken to post this chunk
 		}
 
-		// don't try to post nothing
-		if len(matchingStreams) == 0 {
-			return
+		if messageCount > len(messageChunks) {
+			// Issue a delete action
 		}
 
-		// naive post
-		embedfields := util.Chunk(StreamsToEmbedFields(matchingStreams...), 25)
-		embeds := util.Map(embedfields, StreamsMessageEmbed)
-		messagechunks := util.Chunk(embeds, 10)
-
-		for idx, me := range messagechunks {
-			newMessage, err := s.ChannelMessageSendComplex(sub.ChannelID, &discordgo.MessageSend{
-				Content: "Test Send",
-				Embeds:  me,
-			})
-			if err != nil {
-				log.Err(err).Msg("Failed to send message.")
-			}
-
-			m.Create(&models.Message{MessageID: newMessage.ID, SubscriptionID: sub.ID, PostOrder: idx})
+		for idx, action := range actions {
+			// Perform post/edit/delete and update database
 		}
 	}
 }
