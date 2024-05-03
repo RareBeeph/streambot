@@ -52,7 +52,7 @@ var subscribeCmd = &Definition{
 			var selectedGameID string
 			selectedGameID, i = get_option(s, i,
 				"Which of these games did you mean?",
-				*util.Map(gamesResponse.Data.Games, func(game helix.Game, _ int) discordgo.SelectMenuOption {
+				util.Map(gamesResponse.Data.Games, func(game helix.Game, _ int) discordgo.SelectMenuOption {
 					return discordgo.SelectMenuOption{
 						Emoji: discordgo.ComponentEmoji{
 							Name: "🦦", // temp emoji

@@ -32,7 +32,7 @@ func updateMessages(s *discordgo.Session, streams []*models.Stream) {
 		// naive edit
 		if len(sub.Messages) != 0 {
 			embedfields := util.Chunk(StreamsToEmbedFields(matchingStreams...), 25)
-			embeds := *util.Map(embedfields, StreamsMessageEmbed)
+			embeds := util.Map(embedfields, StreamsMessageEmbed)
 			messagechunks := util.Chunk(embeds, 10)
 
 			// empty case
@@ -42,7 +42,7 @@ func updateMessages(s *discordgo.Session, streams []*models.Stream) {
 
 			// remove excessive messages, else post needed ones
 			if len(sub.Messages) > len(messagechunks) {
-				s.ChannelMessagesBulkDelete(sub.ChannelID, *util.Map(sub.Messages[len(messagechunks):], func(message models.Message, i int) string {
+				s.ChannelMessagesBulkDelete(sub.ChannelID, util.Map(sub.Messages[len(messagechunks):], func(message models.Message, i int) string {
 					id := message.MessageID
 					m.Delete(&message)
 					return id
@@ -88,7 +88,7 @@ func updateMessages(s *discordgo.Session, streams []*models.Stream) {
 
 		// naive post
 		embedfields := util.Chunk(StreamsToEmbedFields(matchingStreams...), 25)
-		embeds := *util.Map(embedfields, StreamsMessageEmbed)
+		embeds := util.Map(embedfields, StreamsMessageEmbed)
 		messagechunks := util.Chunk(embeds, 10)
 
 		for idx, me := range messagechunks {
