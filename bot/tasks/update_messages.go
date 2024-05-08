@@ -40,17 +40,62 @@ func updateMessages(s *discordgo.Session) {
 		embeds := util.Map(embedFields, StreamsMessageEmbed)
 		messageChunks := util.Chunk(embeds, 10)
 
-		messageCount := len(sub.Messages)
+		// we could manully sort sub.Messages instead
+		sortedMessages, err := m.Where(m.SubscriptionID.Eq(sub.ID)).Order(m.PostOrder.Asc()).Find()
+		if err != nil {
+			log.Err(err).Msg("Failed to find or sort messages.")
+		}
+		if len(sortedMessages) != len(sub.Messages) {
+			log.Err(err).Msg("DEBUG: didn't find the expected number of messages")
+		}
+
+		// messageCount := len(sub.Messages)
+		messageCount := len(sortedMessages)
 		for idx, embed := range messageChunks {
 			// Determine what action needs to be taken to post this chunk
+			if idx < messageCount {
+				actions = append(actions, &msgAction{target: sortedMessages[idx], content: embed})
+			} else {
+				actions = append(actions, &msgAction{content: embed})
+			}
 		}
 
-		if messageCount > len(messageChunks) {
-			// Issue a delete action
-		}
+		// we're gonna handle bulk deletion later
+
+		// if messageCount > len(messageChunks) {
+		// 	// Issue a delete action
+		// 	for idx, mess := range sortedMessages[messageCount:] {
+		// 		actions = append(actions, &msgAction{target: mess})
+		// 	}
+		// }
 
 		for idx, action := range actions {
-			// Perform post/edit/delete and update database
+			// Perform post/edit and update database
+			if action.target == nil {
+				// no target => post
+				message, err := s.ChannelMessageSendComplex(sub.ChannelID, &discordgo.MessageSend{
+					Content: "placeholder",
+					Embeds:  action.content,
+				})
+				if err != nil {
+					log.Err(err).Msg("Failed to send message.")
+				}
+
+				m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: idx})
+			} else {
+				// yes target => edit
+				textContent := "placeholder"
+				_, err := s.ChannelMessageEditComplex(&discordgo.MessageEdit{
+					Content: &textContent,
+					Embeds:  action.content,
+
+					ID:      action.target.MessageID,
+					Channel: sub.ChannelID,
+				})
+				if err != nil {
+					log.Err(err).Msg("Failed to edit message.")
+				}
+			}
 		}
 	}
 }
