@@ -60,15 +60,6 @@ func updateMessages(s *discordgo.Session) {
 			}
 		}
 
-		// we're gonna handle bulk deletion later
-
-		// if messageCount > len(messageChunks) {
-		// 	// Issue a delete action
-		// 	for idx, mess := range sortedMessages[messageCount:] {
-		// 		actions = append(actions, &msgAction{target: mess})
-		// 	}
-		// }
-
 		for idx, action := range actions {
 			// Perform post/edit and update database
 			if action.target == nil {
@@ -84,10 +75,8 @@ func updateMessages(s *discordgo.Session) {
 				m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: idx})
 			} else {
 				// yes target => edit
-				textContent := "placeholder"
 				_, err := s.ChannelMessageEditComplex(&discordgo.MessageEdit{
-					Content: &textContent,
-					Embeds:  action.content,
+					Embeds: action.content,
 
 					ID:      action.target.MessageID,
 					Channel: sub.ChannelID,
@@ -96,6 +85,18 @@ func updateMessages(s *discordgo.Session) {
 					log.Err(err).Msg("Failed to edit message.")
 				}
 			}
+		}
+
+		// untested code
+		if messageCount > len(messageChunks) {
+			// bulk delete unneeded messages and update database
+			messagesToDelete := util.Map(sortedMessages[len(messageChunks):], func(message *models.Message, idx int) string {
+				return message.MessageID
+			})
+			err := s.ChannelMessagesBulkDelete(sub.ChannelID, messagesToDelete)
+			log.Err(err).Msg("Failed to bulk delete messages")
+
+			m.Where(m.MessageID.In(messagesToDelete...)).Delete()
 		}
 	}
 }
