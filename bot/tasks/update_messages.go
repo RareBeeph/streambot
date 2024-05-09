@@ -87,14 +87,15 @@ func updateMessages(s *discordgo.Session) {
 			}
 		}
 
-		// untested code
 		if messageCount > len(messageChunks) {
 			// bulk delete unneeded messages and update database
 			messagesToDelete := util.Map(sortedMessages[len(messageChunks):], func(message *models.Message, idx int) string {
 				return message.MessageID
 			})
 			err := s.ChannelMessagesBulkDelete(sub.ChannelID, messagesToDelete)
-			log.Err(err).Msg("Failed to bulk delete messages")
+			if err != nil {
+				log.Err(err).Msg("Failed to bulk delete messages")
+			}
 
 			m.Where(m.MessageID.In(messagesToDelete...)).Delete()
 		}
