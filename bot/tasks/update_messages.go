@@ -12,6 +12,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const maxTimesFailed = 5
+
 func updateMessages(s *discordgo.Session) {
 	type msgAction struct {
 		target  *models.Message
@@ -27,7 +29,12 @@ func updateMessages(s *discordgo.Session) {
 		log.Err(err).Msg("Failed to find subscriptions")
 	}
 
+subscriptionLoop:
 	for _, sub := range subscriptions {
+		if sub.TimesFailed >= maxTimesFailed {
+			continue
+		}
+
 		matchingStreams, err := qst.Where(qst.GameID.Eq(sub.GameID), qst.Title.Lower().Like(fmt.Sprintf("%%%s%%", sub.Filter))).Find()
 		if err != nil {
 			log.Err(err).Msg("Failed to find matching streams.")
@@ -70,6 +77,8 @@ func updateMessages(s *discordgo.Session) {
 				})
 				if err != nil {
 					log.Err(err).Msg("Failed to send message.")
+					qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, sub.TimesFailed+1)
+					continue subscriptionLoop
 				}
 
 				m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: idx})
@@ -83,6 +92,8 @@ func updateMessages(s *discordgo.Session) {
 				})
 				if err != nil {
 					log.Err(err).Msg("Failed to edit message.")
+					qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, sub.TimesFailed+1)
+					continue subscriptionLoop
 				}
 			}
 		}
@@ -95,10 +106,15 @@ func updateMessages(s *discordgo.Session) {
 			err := s.ChannelMessagesBulkDelete(sub.ChannelID, messagesToDelete)
 			if err != nil {
 				log.Err(err).Msg("Failed to bulk delete messages")
+				qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, sub.TimesFailed+1)
+				continue subscriptionLoop // could just be "continue" but might as well extend the pattern
 			}
 
 			m.Where(m.MessageID.In(messagesToDelete...)).Delete()
 		}
+
+		// if all our posting/editing/deleting succeeded
+		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, 0)
 	}
 }
 

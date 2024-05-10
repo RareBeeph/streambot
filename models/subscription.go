@@ -14,6 +14,8 @@ type Subscription struct {
 	GuildID   string
 	ChannelID string `gorm:"uniqueIndex:idx_channel_game_filter"`
 
+	TimesFailed int
+
 	Messages []Message
 }
 
