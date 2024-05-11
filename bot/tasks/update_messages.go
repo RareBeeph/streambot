@@ -46,14 +46,14 @@ func updateMessages(s *discordgo.Session) {
 		if err != nil {
 			log.Err(err).Msg("Failed to bulk delete messages")
 			sub.TimesFailed += 1
-			qs.Save(sub)
+			qs.Updates(sub)
 			continue
 		}
 		m.Where(m.MessageID.In(messagesToDelete...)).Delete()
 
 		// if all our posting/editing/deleting succeeded
 		sub.TimesFailed = 0
-		qs.Save(sub)
+		qs.Updates(sub)
 	}
 }
 
@@ -115,7 +115,7 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Me
 
 		if err != nil {
 			// Propagate failure count
-			qs.Save(sub)
+			qs.Updates(sub)
 			return []models.Message{}, err
 		}
 	}
