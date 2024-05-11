@@ -45,15 +45,14 @@ func updateMessages(s *discordgo.Session) {
 		err = s.ChannelMessagesBulkDelete(sub.ChannelID, messagesToDelete)
 		if err != nil {
 			log.Err(err).Msg("Failed to bulk delete messages")
-			sub.TimesFailed += 1
-			qs.Updates(sub)
+			qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
 			continue
 		}
 		m.Where(m.MessageID.In(messagesToDelete...)).Delete()
 
 		// if all our posting/editing/deleting succeeded
 		sub.TimesFailed = 0
-		qs.Updates(sub)
+		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
 	}
 }
 
@@ -115,12 +114,16 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Me
 
 		if err != nil {
 			// Propagate failure count
-			qs.Updates(sub)
+			qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
 			return []models.Message{}, err
 		}
 	}
 
-	return sub.Messages[len(actions):], nil
+	if len(sub.Messages) > len(actions) {
+		return sub.Messages[len(actions):], nil
+	}
+
+	return []models.Message{}, nil
 }
 
 func StreamsToEmbedFields(streams ...*models.Stream) []*discordgo.MessageEmbedField {
