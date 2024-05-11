@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// TODO: load this from config
 const maxTimesFailed = 5
 
 type msgAction struct {
@@ -22,68 +23,42 @@ func updateMessages(s *discordgo.Session) {
 	m := query.Message
 	qs := query.Subscription
 
-	subscriptions, err := qs.Preload(qs.Messages.Order(m.PostOrder.Asc())).Find()
+	// Let's have our database perform
+	subscriptions, err := qs.
+		Preload(qs.Messages.Order(m.PostOrder.Asc())).
+		Where(qs.TimesFailed.Lt(maxTimesFailed)).
+		Find()
 	if err != nil {
 		log.Err(err).Msg("Failed to find subscriptions")
 	}
 
-subscriptionLoop:
 	for _, sub := range subscriptions {
-		if sub.TimesFailed >= maxTimesFailed {
+		orphanedMsgs, err := performUpdates(s, sub)
+		if err != nil {
 			continue
 		}
 
-		actions := getActions(sub)
-
-		for idx, action := range actions {
-			// requirements: idx, action, sub
-
-			// Perform post/edit and update database
-			if action.target == nil {
-				// no target => post
-				err = postMessage(s, sub, action, idx)
-				if err != nil {
-					log.Err(err).Msg("Failed to send message.")
-					qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, sub.TimesFailed+1)
-					continue subscriptionLoop
-				}
-			} else {
-				// yes target => edit
-				_, err := s.ChannelMessageEditComplex(&discordgo.MessageEdit{
-					Embeds: action.content,
-
-					ID:      action.target.MessageID,
-					Channel: sub.ChannelID,
-				})
-				if err != nil {
-					log.Err(err).Msg("Failed to edit message.")
-					qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, sub.TimesFailed+1)
-					continue subscriptionLoop
-				}
-			}
+		// bulk delete unneeded messages and update database
+		messagesToDelete := util.Map(orphanedMsgs, func(message models.Message, idx int) string {
+			return message.MessageID
+		})
+		err = s.ChannelMessagesBulkDelete(sub.ChannelID, messagesToDelete)
+		if err != nil {
+			log.Err(err).Msg("Failed to bulk delete messages")
+			sub.TimesFailed += 1
+			qs.Save(sub)
+			continue
 		}
-
-		if len(sub.Messages) > len(actions) {
-			// bulk delete unneeded messages and update database
-			messagesToDelete := util.Map(sub.Messages[len(actions):], func(message models.Message, idx int) string {
-				return message.MessageID
-			})
-			err := s.ChannelMessagesBulkDelete(sub.ChannelID, messagesToDelete)
-			if err != nil {
-				log.Err(err).Msg("Failed to bulk delete messages")
-				qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, sub.TimesFailed+1)
-				continue subscriptionLoop // could just be "continue" but might as well extend the pattern
-			}
-
-			m.Where(m.MessageID.In(messagesToDelete...)).Delete()
-		}
+		m.Where(m.MessageID.In(messagesToDelete...)).Delete()
 
 		// if all our posting/editing/deleting succeeded
-		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, 0)
+		sub.TimesFailed = 0
+		qs.Save(sub)
 	}
 }
 
-func getActions(sub *models.Subscription) []*msgAction {
+func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Message, error) {
+	qs := query.Subscription
 	qst := query.Stream
 
 	matchingStreams, err := qst.Where(qst.GameID.Eq(sub.GameID), qst.Title.Lower().Like(fmt.Sprintf("%%%s%%", sub.Filter))).Find()
@@ -94,13 +69,14 @@ func getActions(sub *models.Subscription) []*msgAction {
 	// The modifications we're going to make to our messages
 	actions := []*msgAction{}
 
+	// The actual content of the messages we intend to post
 	embedFields := util.Chunk(StreamsToEmbedFields(matchingStreams...), 25)
 	embeds := util.Map(embedFields, StreamsMessageEmbed)
 	messageChunks := util.Chunk(embeds, 10)
 
+	// Determine what action needs to be taken to post each chunk
 	messageCount := len(sub.Messages)
 	for idx, embed := range messageChunks {
-		// Determine what action needs to be taken to post this chunk
 		if idx < messageCount {
 			actions = append(actions, &msgAction{target: &sub.Messages[idx], content: embed})
 		} else {
@@ -108,7 +84,37 @@ func getActions(sub *models.Subscription) []*msgAction {
 		}
 	}
 
-	return actions
+	for idx, action := range actions {
+		// requirements: idx, action, sub
+
+		// Perform post/edit and update database
+		if action.target == nil {
+			// no target => post
+			err = postMessage(s, sub, action, idx)
+			if err != nil {
+				sub.TimesFailed += 1
+			}
+		} else {
+			// yes target => edit
+			_, err := s.ChannelMessageEditComplex(&discordgo.MessageEdit{
+				Embeds: action.content,
+
+				ID:      action.target.MessageID,
+				Channel: sub.ChannelID,
+			})
+			if err != nil {
+				sub.TimesFailed += 1
+			}
+		}
+
+		if err != nil {
+			// Propagate failure count
+			qs.Save(sub)
+			return []models.Message{}, err
+		}
+	}
+
+	return sub.Messages[len(actions):], nil
 }
 
 func postMessage(s *discordgo.Session, sub *models.Subscription, action *msgAction, postOrderIdx int) error {
