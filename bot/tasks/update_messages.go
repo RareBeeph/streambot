@@ -5,7 +5,6 @@ import (
 	"streambot/models"
 	"streambot/query"
 	"streambot/util"
-	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -14,17 +13,16 @@ import (
 
 const maxTimesFailed = 5
 
-func updateMessages(s *discordgo.Session) {
-	type msgAction struct {
-		target  *models.Message
-		content []*discordgo.MessageEmbed
-	}
+type msgAction struct {
+	target  *models.Message
+	content []*discordgo.MessageEmbed
+}
 
+func updateMessages(s *discordgo.Session) {
 	m := query.Message
 	qs := query.Subscription
-	qst := query.Stream
 
-	subscriptions, err := qs.Preload(qs.Messages).Find()
+	subscriptions, err := qs.Preload(qs.Messages.Order(m.PostOrder.Asc())).Find()
 	if err != nil {
 		log.Err(err).Msg("Failed to find subscriptions")
 	}
@@ -35,53 +33,20 @@ subscriptionLoop:
 			continue
 		}
 
-		matchingStreams, err := qst.Where(qst.GameID.Eq(sub.GameID), qst.Title.Lower().Like(fmt.Sprintf("%%%s%%", sub.Filter))).Find()
-		if err != nil {
-			log.Err(err).Msg("Failed to find matching streams.")
-		}
-
-		// The modifications we're going to make to our messages
-		actions := []*msgAction{}
-
-		embedFields := util.Chunk(StreamsToEmbedFields(matchingStreams...), 25)
-		embeds := util.Map(embedFields, StreamsMessageEmbed)
-		messageChunks := util.Chunk(embeds, 10)
-
-		// we could manully sort sub.Messages instead
-		sortedMessages, err := m.Where(m.SubscriptionID.Eq(sub.ID)).Order(m.PostOrder.Asc()).Find()
-		if err != nil {
-			log.Err(err).Msg("Failed to find or sort messages.")
-		}
-		if len(sortedMessages) != len(sub.Messages) {
-			log.Err(err).Msg("DEBUG: didn't find the expected number of messages")
-		}
-
-		// messageCount := len(sub.Messages)
-		messageCount := len(sortedMessages)
-		for idx, embed := range messageChunks {
-			// Determine what action needs to be taken to post this chunk
-			if idx < messageCount {
-				actions = append(actions, &msgAction{target: sortedMessages[idx], content: embed})
-			} else {
-				actions = append(actions, &msgAction{content: embed})
-			}
-		}
+		actions := getActions(sub)
 
 		for idx, action := range actions {
+			// requirements: idx, action, sub
+
 			// Perform post/edit and update database
 			if action.target == nil {
 				// no target => post
-				message, err := s.ChannelMessageSendComplex(sub.ChannelID, &discordgo.MessageSend{
-					Content: "placeholder",
-					Embeds:  action.content,
-				})
+				err = postMessage(s, sub, action, idx)
 				if err != nil {
 					log.Err(err).Msg("Failed to send message.")
 					qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, sub.TimesFailed+1)
 					continue subscriptionLoop
 				}
-
-				m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: idx})
 			} else {
 				// yes target => edit
 				_, err := s.ChannelMessageEditComplex(&discordgo.MessageEdit{
@@ -98,9 +63,9 @@ subscriptionLoop:
 			}
 		}
 
-		if messageCount > len(messageChunks) {
+		if len(sub.Messages) > len(actions) {
 			// bulk delete unneeded messages and update database
-			messagesToDelete := util.Map(sortedMessages[len(messageChunks):], func(message *models.Message, idx int) string {
+			messagesToDelete := util.Map(sub.Messages[len(actions):], func(message models.Message, idx int) string {
 				return message.MessageID
 			})
 			err := s.ChannelMessagesBulkDelete(sub.ChannelID, messagesToDelete)
@@ -116,6 +81,46 @@ subscriptionLoop:
 		// if all our posting/editing/deleting succeeded
 		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, 0)
 	}
+}
+
+func getActions(sub *models.Subscription) []*msgAction {
+	qst := query.Stream
+
+	matchingStreams, err := qst.Where(qst.GameID.Eq(sub.GameID), qst.Title.Lower().Like(fmt.Sprintf("%%%s%%", sub.Filter))).Find()
+	if err != nil {
+		log.Err(err).Msg("Failed to find matching streams.")
+	}
+
+	// The modifications we're going to make to our messages
+	actions := []*msgAction{}
+
+	embedFields := util.Chunk(StreamsToEmbedFields(matchingStreams...), 25)
+	embeds := util.Map(embedFields, StreamsMessageEmbed)
+	messageChunks := util.Chunk(embeds, 10)
+
+	messageCount := len(sub.Messages)
+	for idx, embed := range messageChunks {
+		// Determine what action needs to be taken to post this chunk
+		if idx < messageCount {
+			actions = append(actions, &msgAction{target: &sub.Messages[idx], content: embed})
+		} else {
+			actions = append(actions, &msgAction{content: embed})
+		}
+	}
+
+	return actions
+}
+
+func postMessage(s *discordgo.Session, sub *models.Subscription, action *msgAction, postOrderIdx int) error {
+	m := query.Message
+
+	message, err := s.ChannelMessageSendComplex(sub.ChannelID, &discordgo.MessageSend{
+		Content: "placeholder",
+		Embeds:  action.content,
+	})
+	m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: postOrderIdx})
+
+	return err
 }
 
 func StreamsToEmbedFields(streams ...*models.Stream) []*discordgo.MessageEmbedField {
@@ -141,8 +146,4 @@ func StreamsMessageEmbed(fields []*discordgo.MessageEmbedField, idx int) *discor
 		Fields:      fields,
 		Timestamp:   time.Now().Format(time.RFC3339),
 	}
-}
-
-func StreamMatchesSubscription(st *models.Stream, sub *models.Subscription) bool {
-	return st.GameID == sub.GameID && strings.Contains(strings.ToLower(st.Title), strings.ToLower(sub.Filter))
 }
