@@ -58,6 +58,7 @@ func updateMessages(s *discordgo.Session) {
 }
 
 func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Message, error) {
+	m := query.Message
 	qs := query.Subscription
 	qst := query.Stream
 
@@ -90,7 +91,12 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Me
 		// Perform post/edit and update database
 		if action.target == nil {
 			// no target => post
-			err = postMessage(s, sub, action, idx)
+			message, err := s.ChannelMessageSendComplex(sub.ChannelID, &discordgo.MessageSend{
+				Content: "placeholder",
+				Embeds:  action.content,
+			})
+			m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: idx})
+
 			if err != nil {
 				sub.TimesFailed += 1
 			}
@@ -115,18 +121,6 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Me
 	}
 
 	return sub.Messages[len(actions):], nil
-}
-
-func postMessage(s *discordgo.Session, sub *models.Subscription, action *msgAction, postOrderIdx int) error {
-	m := query.Message
-
-	message, err := s.ChannelMessageSendComplex(sub.ChannelID, &discordgo.MessageSend{
-		Content: "placeholder",
-		Embeds:  action.content,
-	})
-	m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: postOrderIdx})
-
-	return err
 }
 
 func StreamsToEmbedFields(streams ...*models.Stream) []*discordgo.MessageEmbedField {
