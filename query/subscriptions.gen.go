@@ -6,6 +6,7 @@ package query
 
 import (
 	"context"
+	"strings"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -261,6 +262,25 @@ type ISubscriptionDo interface {
 	Returning(value interface{}, columns ...string) ISubscriptionDo
 	UnderlyingDB() *gorm.DB
 	schema.Tabler
+
+	GetByHealth(cap int) (result []*models.Subscription, err error)
+}
+
+// GetByHealth queries for instances that meet a health check threshold
+//
+// SELECT * from @@table WHERE times_failed < @cap
+func (s subscriptionDo) GetByHealth(cap int) (result []*models.Subscription, err error) {
+	var params []interface{}
+
+	var generateSQL strings.Builder
+	params = append(params, cap)
+	generateSQL.WriteString("SELECT * from subscriptions WHERE times_failed < ? ")
+
+	var executeSQL *gorm.DB
+	executeSQL = s.UnderlyingDB().Raw(generateSQL.String(), params...).Find(&result) // ignore_security_alert
+	err = executeSQL.Error
+
+	return
 }
 
 func (s subscriptionDo) Debug() ISubscriptionDo {

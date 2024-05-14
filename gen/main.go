@@ -7,6 +7,15 @@ import (
 	"gorm.io/gen"
 )
 
+// This name follows Go conventions for interfaces but I still don't like it
+// Feel free to rename
+type Subscriber interface {
+	// GetByHealth queries for instances that meet a health check threshold
+	//
+	// SELECT * from @@table WHERE times_failed < @cap
+	GetByHealth(cap int) ([]*gen.T, error)
+}
+
 func main() {
 	g := gen.NewGenerator(gen.Config{
 		OutPath: "./query",
@@ -18,6 +27,7 @@ func main() {
 
 	// Generate basic type-safe DAO API for struct `model.User` following conventions
 	g.ApplyBasic(models.All...)
+	g.ApplyInterface(func(Subscriber) {}, models.Subscription{})
 
 	// Generate the code
 	g.Execute()

@@ -21,11 +21,10 @@ func updateMessages(s *discordgo.Session) {
 	m := query.Message
 	qs := query.Subscription
 
-	// Let's have our database perform
+	// Load all active subscriptions
 	subscriptions, err := qs.
 		Preload(qs.Messages.Order(m.PostOrder.Asc())).
-		Where(qs.TimesFailed.Lt(models.MaxTimesFailed)).
-		Find()
+		GetByHealth(models.MaxTimesFailed)
 	if err != nil {
 		log.Err(err).Msg("Failed to find subscriptions")
 	}
