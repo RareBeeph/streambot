@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"errors"
 	"fmt"
 	"streambot/models"
 	"streambot/query"
@@ -10,9 +11,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/rs/zerolog/log"
 )
-
-// TODO: load this from config
-const maxTimesFailed = 5
 
 type msgAction struct {
 	target  *models.Message
@@ -26,7 +24,7 @@ func updateMessages(s *discordgo.Session) {
 	// Let's have our database perform
 	subscriptions, err := qs.
 		Preload(qs.Messages.Order(m.PostOrder.Asc())).
-		Where(qs.TimesFailed.Lt(maxTimesFailed)).
+		Where(qs.TimesFailed.Lt(models.MaxTimesFailed)).
 		Find()
 	if err != nil {
 		log.Err(err).Msg("Failed to find subscriptions")
@@ -84,20 +82,21 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Me
 		}
 	}
 
+	errored := false
 	for idx, action := range actions {
-		// requirements: idx, action, sub
-
 		// Perform post/edit and update database
 		if action.target == nil {
 			// no target => post
 			message, err := s.ChannelMessageSendComplex(sub.ChannelID, &discordgo.MessageSend{
-				Content: "placeholder",
-				Embeds:  action.content,
+				// Content: "placeholder",
+				Embeds: action.content,
 			})
 			m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: idx})
 
 			if err != nil {
-				sub.TimesFailed += 1
+				log.Err(err).Msg("Failed to send messages.")
+				errored = true
+				// sub.TimesFailed += 1
 			}
 		} else {
 			// yes target => edit
@@ -108,14 +107,16 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Me
 				Channel: sub.ChannelID,
 			})
 			if err != nil {
-				sub.TimesFailed += 1
+				log.Err(err).Msg("Failed to edit messages.")
+				errored = true
+				// sub.TimesFailed += 1
 			}
 		}
 
-		if err != nil {
+		if errored {
 			// Propagate failure count
 			qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
-			return []models.Message{}, err
+			return []models.Message{}, errors.New("Failed to update at least one message.")
 		}
 	}
 

@@ -1,10 +1,11 @@
 package bot
 
 import (
-	"github.com/rs/zerolog/log"
 	"streambot/bot/commands"
 	"streambot/models"
 	"streambot/query"
+
+	"github.com/rs/zerolog/log"
 )
 
 func (b *bot) registerCommands() error {

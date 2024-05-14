@@ -21,11 +21,9 @@ var subscriptionsCmd = &Definition{
 			content = err.Error()
 		} else if len(subscriptions) > 0 {
 			for i, sub := range subscriptions {
-				q := tickQuoteHelper
-				content += fmt.Sprintf(`%d)  Game Name: %s  |  GameID: %s`, i+1, q(sub.GameName), q(sub.GameID))
-				if sub.Filter != "" {
-					content += "  |  Filter: " + q(sub.Filter)
-				}
+				// Note: no longer displays game ID.
+				// This might be unideal for users who wish to confirm externally that they queried the right game.
+				content += fmt.Sprintf(`%d) %s`, i+1, sub)
 				content += "\n"
 			}
 		} else {
