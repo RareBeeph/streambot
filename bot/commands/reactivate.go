@@ -54,7 +54,6 @@ var reactivateCmd = &Definition{
 			}),
 		)
 
-		// This func just exists as a layer from which to only partially return on error
 		msg, err := (func() (string, error) {
 			// Ignoring error as we generated these ourselves
 			subid, _ := strconv.ParseUint(selectedSub, 10, 32)

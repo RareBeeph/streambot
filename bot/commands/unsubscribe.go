@@ -45,7 +45,7 @@ var unsubscribeCmd = &Definition{
 						Name: "🦦", // temp emoji
 					},
 					Label: label,
-					Value: fmt.Sprint(sub.ID), // maybe don't use db id here
+					Value: fmt.Sprint(sub.ID),
 				}
 			}),
 		)
@@ -55,19 +55,30 @@ var unsubscribeCmd = &Definition{
 			// Ignoring error as we generated these ourselves
 			subid, _ := strconv.ParseUint(selectedSub, 10, 32)
 
+			// Fetch the subscription
 			sub, err := qs.Where(qs.ID.Eq(uint(subid))).First()
 			if err != nil {
 				return "", err
 			}
 
-			_, err = qs.Delete(sub)
+			// Cleanup the posted messages from the channel
+			err = s.ChannelMessagesBulkDelete(
+				sub.ChannelID,
+				util.Map(sub.Messages, func(post models.Message, _ int) string {
+					return post.MessageID
+				}),
+			)
+			if err != nil {
+				return "", err
+			}
+
+			// If that was successful, clean the objects out of our database
+			_, err = qs.Select(qs.Messages.Field()).Delete(sub)
 			if err != nil {
 				return "", err
 			}
 
 			return fmt.Sprintf(`Unsubscribed from subscription--%s`, sub), nil
-
-			// TODO: delete messages corresponding to the removed subscription
 		})()
 
 		if err != nil {
