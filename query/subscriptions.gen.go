@@ -268,13 +268,13 @@ type ISubscriptionDo interface {
 
 // GetByHealth queries for instances that meet a health check threshold
 //
-// SELECT * from @@table WHERE times_failed < @cap
+// SELECT * from @@table WHERE times_failed < @cap AND deleted_at IS NULL
 func (s subscriptionDo) GetByHealth(cap int) (result []*models.Subscription, err error) {
 	var params []interface{}
 
 	var generateSQL strings.Builder
 	params = append(params, cap)
-	generateSQL.WriteString("SELECT * from subscriptions WHERE times_failed < ? ")
+	generateSQL.WriteString("SELECT * from subscriptions WHERE times_failed < ? AND deleted_at IS NULL ")
 
 	var executeSQL *gorm.DB
 	executeSQL = s.UnderlyingDB().Raw(generateSQL.String(), params...).Find(&result) // ignore_security_alert

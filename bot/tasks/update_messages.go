@@ -6,6 +6,7 @@ import (
 	"streambot/models"
 	"streambot/query"
 	"streambot/util"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -68,7 +69,11 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Me
 
 	// The actual content of the messages we intend to post
 	embedFields := util.Chunk(StreamsToEmbedFields(matchingStreams...), 25)
-	embeds := util.Map(embedFields, StreamsMessageEmbed)
+	embeds := util.Map(embedFields, func(fields []*discordgo.MessageEmbedField, idx int) *discordgo.MessageEmbed {
+		out := StreamsMessageEmbed(fields, idx)
+		out.Title = fmt.Sprintf("Streams for %s", sub)
+		return out
+	})
 	messageChunks := util.Chunk(embeds, 10)
 
 	// Determine what action needs to be taken to post each chunk
@@ -93,9 +98,8 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Me
 			m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: idx})
 
 			if err != nil {
-				log.Err(err).Msg("Failed to send messages.")
+				log.Err(err).Msg("Failed to send message.")
 				errored = true
-				// sub.TimesFailed += 1
 			}
 		} else {
 			// yes target => edit
@@ -106,17 +110,22 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Me
 				Channel: sub.ChannelID,
 			})
 			if err != nil {
+				// janky check to catch message records that no longer refer to existent messages
+				if strings.Contains(err.Error(), fmt.Sprint(discordgo.ErrCodeUnknownMessage)) {
+					m.Where(m.ID.Eq(action.target.ID)).Delete()
+				}
 				log.Err(err).Msg("Failed to edit messages.")
 				errored = true
-				// sub.TimesFailed += 1
 			}
+
 		}
 
-		if errored {
-			// Propagate failure count
-			qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
-			return []models.Message{}, errors.New("failed to update at least one message")
-		}
+	}
+
+	if errored {
+		// Propagate failure count
+		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
+		return []models.Message{}, errors.New("failed to update at least one message")
 	}
 
 	if len(sub.Messages) > len(actions) {
@@ -142,11 +151,10 @@ func StreamsToEmbedFields(streams ...*models.Stream) []*discordgo.MessageEmbedFi
 
 func StreamsMessageEmbed(fields []*discordgo.MessageEmbedField, idx int) *discordgo.MessageEmbed {
 	return &discordgo.MessageEmbed{
-		Color:       0x9922cc,
-		Author:      &discordgo.MessageEmbedAuthor{},
-		Title:       "placeholder",
-		Description: "placeholder",
-		Fields:      fields,
-		Timestamp:   time.Now().Format(time.RFC3339),
+		Color:     0x9922cc,
+		Author:    &discordgo.MessageEmbedAuthor{},
+		Title:     "placeholder",
+		Fields:    fields,
+		Timestamp: time.Now().Format(time.RFC3339),
 	}
 }

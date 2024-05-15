@@ -9,6 +9,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/nicklaw5/helix/v2"
+	"gorm.io/gorm/clause"
 )
 
 var subscribeCmd = &Definition{
@@ -82,7 +83,10 @@ var subscribeCmd = &Definition{
 				ChannelID: i.ChannelID,
 			}
 
-			err = qs.Create(sub)
+			err = qs.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "game_id"}, {Name: "filter"}, {Name: "channel_id"}},
+				UpdateAll: true, // Specifically, reset TimesFailed to 0 on failure of this index
+			}).Create(sub)
 			if err != nil {
 				content = err.Error()
 			} else {

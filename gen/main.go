@@ -12,7 +12,7 @@ import (
 type Subscriber interface {
 	// GetByHealth queries for instances that meet a health check threshold
 	//
-	// SELECT * from @@table WHERE times_failed < @cap
+	// SELECT * from @@table WHERE times_failed < @cap AND deleted_at IS NULL
 	GetByHealth(cap int) ([]*gen.T, error)
 }
 
