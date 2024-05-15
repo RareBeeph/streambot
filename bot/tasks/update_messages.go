@@ -43,6 +43,7 @@ func updateMessages(s *discordgo.Session) {
 		err = s.ChannelMessagesBulkDelete(sub.ChannelID, messagesToDelete)
 		if err != nil {
 			log.Err(err).Msg("Failed to bulk delete messages")
+			// TODO: testing and recovery logic
 			qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
 			continue
 		}
