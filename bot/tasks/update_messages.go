@@ -127,6 +127,8 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Me
 		// Propagate failure count
 		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
 		return []models.Message{}, errors.New("failed to update at least one message")
+	} else {
+		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, 0)
 	}
 
 	if len(sub.Messages) > len(actions) {
