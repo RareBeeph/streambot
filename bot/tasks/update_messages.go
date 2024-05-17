@@ -6,7 +6,6 @@ import (
 	"streambot/models"
 	"streambot/query"
 	"streambot/util"
-	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -50,8 +49,7 @@ func updateMessages(s *discordgo.Session) {
 		m.Where(m.MessageID.In(messagesToDelete...)).Delete()
 
 		// if all our posting/editing/deleting succeeded
-		sub.TimesFailed = 0
-		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
+		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, 0)
 	}
 }
 
@@ -111,8 +109,9 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Me
 				Channel: sub.ChannelID,
 			})
 			if err != nil {
-				// janky check to catch message records that no longer refer to existent messages
-				if strings.Contains(err.Error(), fmt.Sprint(discordgo.ErrCodeUnknownMessage)) {
+				// check to catch message records that no longer refer to existent messages
+				var resterr *discordgo.RESTError
+				if errors.As(err, &resterr) && resterr.Message.Code == discordgo.ErrCodeUnknownMessage {
 					m.Where(m.ID.Eq(action.target.ID)).Delete()
 				}
 				log.Err(err).Msg("Failed to edit messages.")
@@ -127,8 +126,6 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Me
 		// Propagate failure count
 		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
 		return []models.Message{}, errors.New("failed to update at least one message")
-	} else {
-		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, 0)
 	}
 
 	if len(sub.Messages) > len(actions) {
