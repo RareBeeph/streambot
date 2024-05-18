@@ -57,7 +57,7 @@ var unsubscribeCmd = &Definition{
 			subid, _ := strconv.ParseUint(selectedSub, 10, 32)
 
 			// Fetch the subscription
-			sub, err := qs.Where(qs.ID.Eq(uint(subid))).First()
+			sub, err := qs.Preload(qs.Messages).Where(qs.ID.Eq(uint(subid))).First()
 			if err != nil {
 				return "", err
 			}
