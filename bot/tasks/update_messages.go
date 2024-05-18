@@ -30,32 +30,20 @@ func updateMessages(s *discordgo.Session) {
 	}
 
 	for _, sub := range subscriptions {
-		orphanedMsgs, err := performUpdates(s, sub)
+		err := performUpdates(s, sub)
 		if err != nil {
-			continue
-		}
-
-		// bulk delete unneeded messages and update database
-		messagesToDelete := util.Map(orphanedMsgs, func(message models.Message, idx int) string {
-			return message.MessageID
-		})
-		err = s.ChannelMessagesBulkDelete(sub.ChannelID, messagesToDelete)
-		if err != nil {
-			log.Err(err).Msg("Failed to bulk delete messages")
-			// TODO: testing and recovery logic
+			// Propagate failure count
 			qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
 			continue
 		}
-		m.Where(m.MessageID.In(messagesToDelete...)).Delete()
 
 		// if all our posting/editing/deleting succeeded
 		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, 0)
 	}
 }
 
-func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Message, error) {
+func performUpdates(s *discordgo.Session, sub *models.Subscription) error {
 	m := query.Message
-	qs := query.Subscription
 	qst := query.Stream
 
 	matchingStreams, err := qst.Where(qst.GameID.Eq(sub.GameID), qst.Title.Lower().Like(fmt.Sprintf("%%%s%%", sub.Filter))).Find()
@@ -84,55 +72,70 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) ([]models.Me
 			actions = append(actions, &msgAction{content: embed})
 		}
 	}
+	// Determine which messages need to be deleted
+	if len(messageChunks) < messageCount {
+		for _, message := range sub.Messages[len(messageChunks):] {
+			actions = append(actions, &msgAction{target: &message})
+		}
+	}
 
 	errored := false
 	for idx, action := range actions {
-		// Perform post/edit and update database
+		var err error
+		// Perform post/edit/delete and update database
 		if action.target == nil {
 			// no target => post
 			message, err := s.ChannelMessageSendComplex(sub.ChannelID, &discordgo.MessageSend{
-				// Content: "placeholder",
 				Embeds: action.content,
 			})
 			m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: idx})
 
 			if err != nil {
 				log.Err(err).Msg("Failed to send message.")
-				errored = true
+			}
+		} else if action.content == nil {
+			// no content => delete
+			err = s.ChannelMessageDelete(sub.ChannelID, action.target.MessageID)
+
+			var resterr *discordgo.RESTError
+			if err == nil || (errors.As(err, &resterr) && resterr.Message.Code == discordgo.ErrCodeUnknownMessage) {
+				// If we successfully deleted the message, or if it had already been deleted, remove our record of it
+				m.Where(m.MessageID.Eq(action.target.MessageID)).Delete()
+			} else {
+				log.Err(err).Msg("Failed to delete message.")
 			}
 		} else {
-			// yes target => edit
-			_, err := s.ChannelMessageEditComplex(&discordgo.MessageEdit{
+			// yes taget and content => edit
+			_, err = s.ChannelMessageEditComplex(&discordgo.MessageEdit{
 				Embeds: action.content,
 
 				ID:      action.target.MessageID,
 				Channel: sub.ChannelID,
 			})
-			if err != nil {
-				// check to catch message records that no longer refer to existent messages
-				var resterr *discordgo.RESTError
-				if errors.As(err, &resterr) && resterr.Message.Code == discordgo.ErrCodeUnknownMessage {
-					m.Where(m.ID.Eq(action.target.ID)).Delete()
-				}
-				log.Err(err).Msg("Failed to edit messages.")
-				errored = true
+
+			var resterr *discordgo.RESTError
+			if errors.As(err, &resterr) && resterr.Message.Code == discordgo.ErrCodeUnknownMessage {
+				// if the target message no longer exists, remove our record of it
+				m.Where(m.MessageID.Eq(action.target.MessageID)).Delete()
 			}
 
+			// not an else if like in the delete case, because the intended edit never makes it to the user
+			if err != nil {
+				errored = true
+				log.Err(err).Msg("Failed to edit message.")
+			}
 		}
 
+		if err != nil {
+
+		}
 	}
 
 	if errored {
-		// Propagate failure count
-		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
-		return []models.Message{}, errors.New("failed to update at least one message")
+		return errors.New("failed to update at least one message")
 	}
 
-	if len(sub.Messages) > len(actions) {
-		return sub.Messages[len(actions):], nil
-	}
-
-	return []models.Message{}, nil
+	return nil
 }
 
 func StreamsToEmbedFields(streams ...*models.Stream) []*discordgo.MessageEmbedField {
