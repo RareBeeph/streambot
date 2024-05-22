@@ -8,6 +8,7 @@ import (
 	"streambot/util"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/rs/zerolog/log"
 )
 
 var unsubscribeCmd = &Definition{
@@ -42,9 +43,6 @@ var unsubscribeCmd = &Definition{
 				}
 
 				return discordgo.SelectMenuOption{
-					Emoji: discordgo.ComponentEmoji{
-						Name: "🦦", // temp emoji
-					},
 					Label: label,
 					Value: fmt.Sprint(sub.ID),
 				}
@@ -63,14 +61,13 @@ var unsubscribeCmd = &Definition{
 			}
 
 			// Cleanup the posted messages from the channel
-			err = s.ChannelMessagesBulkDelete(
-				sub.ChannelID,
-				util.Map(sub.Messages, func(post models.Message, _ int) string {
-					return post.MessageID
-				}),
-			)
-			if err != nil {
-				return "", err
+			// This would be a bulk delete, but that only works on
+			// messages younger than 14 days
+			for _, message := range sub.Messages {
+				err := s.ChannelMessageDelete(sub.ChannelID, message.MessageID)
+				if err != nil {
+					log.Err(err).Msg("Failed to delete subscription message")
+				}
 			}
 
 			// If that was successful, clean the objects out of our database

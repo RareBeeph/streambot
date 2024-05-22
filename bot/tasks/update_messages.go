@@ -107,7 +107,7 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) error {
 		} else {
 			// yes taget and content => edit
 			_, err = s.ChannelMessageEditComplex(&discordgo.MessageEdit{
-				Embeds: action.content,
+				Embeds: &action.content,
 
 				ID:      action.target.MessageID,
 				Channel: sub.ChannelID,

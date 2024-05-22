@@ -46,9 +46,6 @@ var reactivateCmd = &Definition{
 				}
 
 				return discordgo.SelectMenuOption{
-					Emoji: discordgo.ComponentEmoji{
-						Name: "🦦", // temp emoji
-					},
 					Label: label,
 					Value: fmt.Sprint(sub.ID), // maybe don't use db id here
 				}
