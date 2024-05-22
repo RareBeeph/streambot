@@ -125,10 +125,6 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) error {
 				log.Err(err).Msg("Failed to edit message.")
 			}
 		}
-
-		if err != nil {
-
-		}
 	}
 
 	if errored {
