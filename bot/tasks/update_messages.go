@@ -6,6 +6,7 @@ import (
 	"streambot/models"
 	"streambot/query"
 	"streambot/util"
+	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -29,21 +30,21 @@ func updateMessages(s *discordgo.Session) {
 		log.Err(err).Msg("Failed to find subscriptions")
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(len(subscriptions))
 	for _, sub := range subscriptions {
-		err := performUpdates(s, sub)
-		if err != nil {
-			// Propagate failure count
-			qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
-			continue
-		}
-
-		// if all our posting/editing/deleting succeeded
-		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, 0)
+		go func() {
+			performUpdates(s, sub)
+			wg.Done()
+		}()
 	}
+
+	wg.Wait()
 }
 
-func performUpdates(s *discordgo.Session, sub *models.Subscription) error {
+func performUpdates(s *discordgo.Session, sub *models.Subscription) {
 	m := query.Message
+	qs := query.Subscription
 	qst := query.Stream
 
 	matchingStreams, err := qst.Where(qst.GameID.Eq(sub.GameID), qst.Title.Lower().Like(fmt.Sprintf("%%%s%%", sub.Filter))).Find()
@@ -128,10 +129,13 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) error {
 	}
 
 	if errored {
-		return errors.New("failed to update at least one message")
+		// propagate failure count
+		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
+		return
 	}
 
-	return nil
+	// if all our posting/editing/deleting succeeded
+	qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, 0)
 }
 
 func StreamsToEmbedFields(streams ...*models.Stream) []*discordgo.MessageEmbedField {
