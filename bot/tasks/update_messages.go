@@ -34,8 +34,8 @@ func updateMessages(s *discordgo.Session) {
 	wg.Add(len(subscriptions))
 	for _, sub := range subscriptions {
 		go func() {
+			defer wg.Done()
 			performUpdates(s, sub)
-			wg.Done()
 		}()
 	}
 
