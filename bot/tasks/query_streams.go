@@ -11,8 +11,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var queryStreams = Task{
-	Spec: "*/5 * * * *",
+var queryStreamsAndUpdateHealthy = Task{
+	Spec:         "*/5 * * * *",
+	runOnStartup: true,
 	handler: func(s *discordgo.Session) {
 		qs := query.Subscription
 		qst := query.Stream
@@ -50,10 +51,10 @@ var queryStreams = Task{
 			log.Err(err).Msg("Failed to update stream list.")
 		}
 
-		updateMessages(s)
+		updateMessages(s, 0, models.MaxTimesFailed)
 	},
 }
 
 func init() {
-	All = append(All, &queryStreams)
+	All = append(All, &queryStreamsAndUpdateHealthy)
 }

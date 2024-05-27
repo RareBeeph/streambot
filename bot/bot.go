@@ -53,7 +53,7 @@ func (b *bot) Start() error {
 		return err
 	}
 
-	tasks.All[0].Run() // temp; we are gonna want to run some of our tasks on startup though
+	tasks.Startup()
 	b.scheduler.Start()
 
 	signal.Notify(b.channel, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)

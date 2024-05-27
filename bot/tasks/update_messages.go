@@ -18,14 +18,14 @@ type msgAction struct {
 	content []*discordgo.MessageEmbed
 }
 
-func updateMessages(s *discordgo.Session) {
+func updateMessages(s *discordgo.Session, minHealth int, maxHealth int) {
 	m := query.Message
 	qs := query.Subscription
 
 	// Load all active subscriptions
 	subscriptions, err := qs.
 		Preload(qs.Messages.Order(m.PostOrder.Asc())).
-		GetByHealth(models.MaxTimesFailed)
+		GetByHealth(minHealth, maxHealth)
 	if err != nil {
 		log.Err(err).Msg("Failed to find subscriptions")
 	}

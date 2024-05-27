@@ -263,18 +263,19 @@ type ISubscriptionDo interface {
 	UnderlyingDB() *gorm.DB
 	schema.Tabler
 
-	GetByHealth(cap int) (result []*models.Subscription, err error)
+	GetByHealth(min int, max int) (result []*models.Subscription, err error)
 }
 
 // GetByHealth queries for instances that meet a health check threshold
 //
-// SELECT * from @@table WHERE times_failed < @cap AND deleted_at IS NULL
-func (s subscriptionDo) GetByHealth(cap int) (result []*models.Subscription, err error) {
+// SELECT * from @@table WHERE times_failed >= @min AND times_failed < @max AND deleted_at IS NULL
+func (s subscriptionDo) GetByHealth(min int, max int) (result []*models.Subscription, err error) {
 	var params []interface{}
 
 	var generateSQL strings.Builder
-	params = append(params, cap)
-	generateSQL.WriteString("SELECT * from subscriptions WHERE times_failed < ? AND deleted_at IS NULL ")
+	params = append(params, min)
+	params = append(params, max)
+	generateSQL.WriteString("SELECT * from subscriptions WHERE times_failed >= ? AND times_failed < ? AND deleted_at IS NULL ")
 
 	var executeSQL *gorm.DB
 	executeSQL = s.UnderlyingDB().Raw(generateSQL.String(), params...).Find(&result) // ignore_security_alert

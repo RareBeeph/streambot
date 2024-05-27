@@ -12,8 +12,8 @@ import (
 type Subscriber interface {
 	// GetByHealth queries for instances that meet a health check threshold
 	//
-	// SELECT * from @@table WHERE times_failed < @cap AND deleted_at IS NULL
-	GetByHealth(cap int) ([]*gen.T, error)
+	// SELECT * from @@table WHERE times_failed >= @min AND times_failed < @max AND deleted_at IS NULL
+	GetByHealth(min int, max int) ([]*gen.T, error)
 }
 
 func main() {
