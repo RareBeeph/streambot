@@ -21,7 +21,7 @@ var reactivateCmd = &Definition{
 
 		qs := query.Subscription
 
-		deactivatedsubs, err := qs.Where(qs.TimesFailed.Gte(models.MaxTimesFailed)).Find()
+		deactivatedsubs, err := qs.Where(qs.TimesFailed.Gte(models.SubHealths.Stale)).Find()
 		if len(deactivatedsubs) == 0 || err != nil {
 			msg := "No deactivated subscriptions"
 			if err != nil {

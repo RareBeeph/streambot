@@ -6,8 +6,18 @@ import (
 	"gorm.io/gorm"
 )
 
+type subHealthRegistry struct {
+	Healthy  int
+	Stale    int
+	Orphaned int
+}
+
 // TODO: Load this from config
-const MaxTimesFailed = 5
+var SubHealths = subHealthRegistry{
+	Healthy:  0,
+	Stale:    5,
+	Orphaned: 20,
+}
 
 type Subscription struct {
 	gorm.Model
@@ -27,7 +37,7 @@ func (s *Subscription) String() string {
 	if s.Filter != "" {
 		out += fmt.Sprintf(" | Filter: `%s`", s.Filter)
 	}
-	if s.TimesFailed >= MaxTimesFailed {
+	if s.TimesFailed >= SubHealths.Stale {
 		out += " (Deactivated)"
 	}
 

@@ -10,7 +10,7 @@ var updateStale = Task{
 	Spec:         "*/30 * * * *",
 	runOnStartup: false,
 	handler: func(s *discordgo.Session) {
-		updateMessages(s, models.MaxTimesFailed, 2*models.MaxTimesFailed) // maybe rename that const or add a new one for the real max
+		updateMessages(s, models.SubHealths.Stale, models.SubHealths.Orphaned) // maybe rename that const or add a new one for the real max
 	},
 }
 

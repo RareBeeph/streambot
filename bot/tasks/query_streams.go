@@ -51,7 +51,7 @@ var queryStreamsAndUpdateHealthy = Task{
 			log.Err(err).Msg("Failed to update stream list.")
 		}
 
-		updateMessages(s, 0, models.MaxTimesFailed)
+		updateMessages(s, models.SubHealths.Healthy, models.SubHealths.Stale)
 	},
 }
 
