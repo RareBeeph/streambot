@@ -18,11 +18,7 @@ type msgAction struct {
 	content []*discordgo.MessageEmbed
 }
 
-var mu sync.Mutex
-
 func updateMessages(s *discordgo.Session, minHealth int, maxHealth int) {
-	mu.Lock()
-
 	m := query.Message
 	qs := query.Subscription
 
@@ -44,7 +40,6 @@ func updateMessages(s *discordgo.Session, minHealth int, maxHealth int) {
 	}
 
 	wg.Wait()
-	mu.Unlock()
 }
 
 func performUpdates(s *discordgo.Session, sub *models.Subscription) {
