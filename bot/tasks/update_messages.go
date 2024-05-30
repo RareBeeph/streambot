@@ -46,8 +46,21 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) {
 	m := query.Message
 	qs := query.Subscription
 	qst := query.Stream
+	qb := query.BlacklistEntry
 
-	matchingStreams, err := qst.Where(qst.GameID.Eq(sub.GameID), qst.Title.Lower().Like(fmt.Sprintf("%%%s%%", sub.Filter))).Find()
+	matchingBlacklists, err := qb.Where(qb.ChannelID.Eq(sub.ChannelID)).Find()
+	if err != nil {
+		log.Err(err).Msg("Failed to find matching blacklists.")
+	}
+
+	blacklistUserIDs := util.Map(matchingBlacklists, func(bl *models.BlacklistEntry, idx int) string {
+		return bl.UserID
+	})
+
+	matchingStreams, err := qst.Where(
+		qst.GameID.Eq(sub.GameID),
+		qst.Title.Lower().Like("%"+sub.Filter+"%"),
+		qst.UserID.NotIn(blacklistUserIDs...)).Find()
 	if err != nil {
 		log.Err(err).Msg("Failed to find matching streams.")
 	}
