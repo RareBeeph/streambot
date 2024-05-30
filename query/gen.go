@@ -17,6 +17,7 @@ import (
 
 var (
 	Q                 = new(Query)
+	BlacklistEntry    *blacklistEntry
 	Message           *message
 	RegisteredCommand *registeredCommand
 	Stream            *stream
@@ -25,6 +26,7 @@ var (
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
+	BlacklistEntry = &Q.BlacklistEntry
 	Message = &Q.Message
 	RegisteredCommand = &Q.RegisteredCommand
 	Stream = &Q.Stream
@@ -34,6 +36,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
 		db:                db,
+		BlacklistEntry:    newBlacklistEntry(db, opts...),
 		Message:           newMessage(db, opts...),
 		RegisteredCommand: newRegisteredCommand(db, opts...),
 		Stream:            newStream(db, opts...),
@@ -44,6 +47,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 type Query struct {
 	db *gorm.DB
 
+	BlacklistEntry    blacklistEntry
 	Message           message
 	RegisteredCommand registeredCommand
 	Stream            stream
@@ -55,6 +59,7 @@ func (q *Query) Available() bool { return q.db != nil }
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:                db,
+		BlacklistEntry:    q.BlacklistEntry.clone(db),
 		Message:           q.Message.clone(db),
 		RegisteredCommand: q.RegisteredCommand.clone(db),
 		Stream:            q.Stream.clone(db),
@@ -73,6 +78,7 @@ func (q *Query) WriteDB() *Query {
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
 		db:                db,
+		BlacklistEntry:    q.BlacklistEntry.replaceDB(db),
 		Message:           q.Message.replaceDB(db),
 		RegisteredCommand: q.RegisteredCommand.replaceDB(db),
 		Stream:            q.Stream.replaceDB(db),
@@ -81,6 +87,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 }
 
 type queryCtx struct {
+	BlacklistEntry    IBlacklistEntryDo
 	Message           IMessageDo
 	RegisteredCommand IRegisteredCommandDo
 	Stream            IStreamDo
@@ -89,6 +96,7 @@ type queryCtx struct {
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
+		BlacklistEntry:    q.BlacklistEntry.WithContext(ctx),
 		Message:           q.Message.WithContext(ctx),
 		RegisteredCommand: q.RegisteredCommand.WithContext(ctx),
 		Stream:            q.Stream.WithContext(ctx),
