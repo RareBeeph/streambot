@@ -75,7 +75,7 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) {
 		out.Title = fmt.Sprintf("Streams for %s", sub)
 		return out
 	})
-	messageChunks := util.Chunk(embeds, 10)
+	messageChunks := util.Chunk(embeds, 2)
 
 	// Determine what action needs to be taken to post each chunk
 	messageCount := len(sub.Messages)

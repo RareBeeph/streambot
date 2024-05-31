@@ -27,6 +27,7 @@ var queryStreamsAndUpdateHealthy = Task{
 
 		resp, err := twitch.Client.GetStreams(&helix.StreamsParams{
 			GameIDs: gameIDs,
+			First:   100,
 		})
 		if err != nil {
 			log.Err(err).Msg("Failed to fetch streams")
