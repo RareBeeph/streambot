@@ -9,6 +9,7 @@ import (
 	"github.com/jinzhu/copier"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm/clause"
 )
 
 var queryStreamsAndUpdateHealthy = Task{
@@ -41,13 +42,16 @@ var queryStreamsAndUpdateHealthy = Task{
 			return
 		}
 
-		_, err = qst.Unscoped().Where(qst.GameID.In(gameIDs...)).Delete()
+		_, err = qst.Where(qst.GameID.In(gameIDs...)).Delete()
 		if err != nil {
 			log.Err(err).Msg("Failed to properly clear stale streams.")
 			return
 		}
 
-		err = qst.Create(streams...)
+		err = qst.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "user_id"}},
+			UpdateAll: true,
+		}).Create(streams...)
 		if err != nil {
 			log.Err(err).Msg("Failed to update stream list.")
 		}
