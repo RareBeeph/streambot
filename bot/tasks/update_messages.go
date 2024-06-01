@@ -155,9 +155,12 @@ func StreamsToEmbedFields(streams ...*models.Stream) []*discordgo.MessageEmbedFi
 	out := []*discordgo.MessageEmbedField{}
 
 	for _, s := range streams {
+		link := fmt.Sprintf("https://twitch.tv/%s", s.UserName)
+		title := util.TruncateString(s.Title, 100-len([]rune(link)))
+
 		out = append(out, &discordgo.MessageEmbedField{
-			Name:   s.Title,
-			Value:  fmt.Sprintf("https://twitch.tv/%s", s.UserName),
+			Name:   title,
+			Value:  link,
 			Inline: true,
 		})
 	}

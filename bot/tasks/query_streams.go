@@ -68,7 +68,7 @@ var queryStreamsAndUpdateHealthy = Task{
 			}
 
 			err = qst.Clauses(clause.OnConflict{
-				// Columns:   []clause.Column{{Name: "user_id"}},
+				Columns:   []clause.Column{{Name: "user_id"}},
 				UpdateAll: true,
 			}).Create(streams...)
 
