@@ -29,6 +29,12 @@ var subscribeCmd = &Definition{
 				Description: "Only subscribe to streams containing the filter string in their titles",
 				Required:    false,
 			},
+			{
+				Type:        discordgo.ApplicationCommandOptionString,
+				Name:        "optional_language",
+				Description: "Only subscribe to streams in the specified language",
+				Required:    false,
+			},
 		},
 	},
 	Handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -80,19 +86,18 @@ var subscribeCmd = &Definition{
 				ChannelID: i.ChannelID,
 			}
 
+			if optionValues["optional_language"] != "" {
+				sub.Language = optionValues["optional_language"]
+			}
+
 			err = qs.Clauses(clause.OnConflict{
-				Columns:   []clause.Column{{Name: "game_id"}, {Name: "filter"}, {Name: "channel_id"}},
+				Columns:   []clause.Column{{Name: "game_id"}, {Name: "filter"}, {Name: "channel_id"}, {Name: "language"}},
 				UpdateAll: true, // Specifically, reset TimesFailed to 0 on failure of this index
 			}).Create(sub)
 			if err != nil {
 				content = err.Error()
 			} else {
-				q := tickQuoteHelper
-
-				content = fmt.Sprintf(`Subscription added for game: %s (ID: %s)`, q(sub.GameName), q(sub.GameID))
-				if sub.Filter != "" {
-					content += " with filter: " + q(sub.Filter)
-				}
+				content = fmt.Sprintf(`Subscription added--%s`, sub)
 			}
 		}
 

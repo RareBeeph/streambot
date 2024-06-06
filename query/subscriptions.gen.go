@@ -37,6 +37,7 @@ func newSubscription(db *gorm.DB, opts ...gen.DOOption) subscription {
 	_subscription.Filter = field.NewString(tableName, "filter")
 	_subscription.GuildID = field.NewString(tableName, "guild_id")
 	_subscription.ChannelID = field.NewString(tableName, "channel_id")
+	_subscription.Language = field.NewString(tableName, "language")
 	_subscription.TimesFailed = field.NewInt(tableName, "times_failed")
 	_subscription.Messages = subscriptionHasManyMessages{
 		db: db.Session(&gorm.Session{}),
@@ -62,6 +63,7 @@ type subscription struct {
 	Filter      field.String
 	GuildID     field.String
 	ChannelID   field.String
+	Language    field.String
 	TimesFailed field.Int
 	Messages    subscriptionHasManyMessages
 
@@ -89,6 +91,7 @@ func (s *subscription) updateTableName(table string) *subscription {
 	s.Filter = field.NewString(table, "filter")
 	s.GuildID = field.NewString(table, "guild_id")
 	s.ChannelID = field.NewString(table, "channel_id")
+	s.Language = field.NewString(table, "language")
 	s.TimesFailed = field.NewInt(table, "times_failed")
 
 	s.fillFieldMap()
@@ -106,7 +109,7 @@ func (s *subscription) GetFieldByName(fieldName string) (field.OrderExpr, bool) 
 }
 
 func (s *subscription) fillFieldMap() {
-	s.fieldMap = make(map[string]field.Expr, 11)
+	s.fieldMap = make(map[string]field.Expr, 12)
 	s.fieldMap["id"] = s.ID
 	s.fieldMap["created_at"] = s.CreatedAt
 	s.fieldMap["updated_at"] = s.UpdatedAt
@@ -116,6 +119,7 @@ func (s *subscription) fillFieldMap() {
 	s.fieldMap["filter"] = s.Filter
 	s.fieldMap["guild_id"] = s.GuildID
 	s.fieldMap["channel_id"] = s.ChannelID
+	s.fieldMap["language"] = s.Language
 	s.fieldMap["times_failed"] = s.TimesFailed
 
 }

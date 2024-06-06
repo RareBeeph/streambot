@@ -26,6 +26,7 @@ type Subscription struct {
 	Filter    string `gorm:"uniqueIndex:idx_channel_game_filter"`
 	GuildID   string
 	ChannelID string `gorm:"uniqueIndex:idx_channel_game_filter"`
+	Language  string `gorm:"uniqueIndex:idx_channel_game_filter"`
 
 	TimesFailed int
 
@@ -34,9 +35,15 @@ type Subscription struct {
 
 func (s *Subscription) String() string {
 	out := fmt.Sprintf("Game: `%s`", s.GameName)
+
+	if s.Language != "" {
+		out += fmt.Sprintf(" | Language: `%s`", s.Language)
+	}
+
 	if s.Filter != "" {
 		out += fmt.Sprintf(" | Filter: `%s`", s.Filter)
 	}
+
 	if s.TimesFailed >= SubHealths.Stale {
 		out += " (Deactivated)"
 	}
