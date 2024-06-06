@@ -9,6 +9,9 @@ import (
 	"github.com/jinzhu/copier"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/rs/zerolog/log"
+
+	"github.com/deckarep/golang-set/v2"
+
 	"gorm.io/gorm/clause"
 
 	"sync"
@@ -22,25 +25,28 @@ var queryStreamsAndUpdateHealthy = Task{
 
 		qs := query.Subscription
 
-		// Get a full list of GameIDs
-		gameIDs := make([]string, 0)
-		err := qs.Distinct(qs.GameID).Pluck(qs.GameID, &gameIDs)
+		// Get every distinct pair of (Language, GameID)
+		gamesByLanguage, err := qs.Distinct(qs.Language, qs.GameID).Select(qs.ALL).Find()
 		if err != nil {
-			log.Err(err).Msg("Failed to pluck game IDs.")
+			log.Err(err).Msg("Failed to get language/gameID pairs.")
 			return
 		}
 
+		// Store a deduplicated list of all game IDs we have fetched streams for
+		gameIDs := mapset.NewSet[string]()
+
 		// Query 100 streams for each of them in parallel
-		wg.Add(len(gameIDs))
+		wg.Add(len(gamesByLanguage))
 		// We use a map instead of a slice as our intermediary
 		// results store for thread safety
-		queryResults := make(map[string][]helix.Stream)
-		for _, gameID := range gameIDs {
-			go func(gameID string) {
+		queryResults := make(map[*models.Subscription][]helix.Stream)
+		for _, sub := range gamesByLanguage {
+			go func(sub *models.Subscription) {
 				defer wg.Done()
-				streams, _ := twitch.FetchStreams(gameID)
-				queryResults[gameID] = streams
-			}(gameID)
+				defer gameIDs.Add(sub.GameID)
+				streams, _ := twitch.FetchStreams(sub.GameID, sub.Language)
+				queryResults[sub] = streams
+			}(sub)
 		}
 		wg.Wait()
 
@@ -62,7 +68,7 @@ var queryStreamsAndUpdateHealthy = Task{
 		err = query.Q.Transaction(func(tx *query.Query) error {
 			qst := tx.Stream
 
-			_, err = qst.Where(qst.GameID.In(gameIDs...)).Delete()
+			_, err = qst.Where(qst.GameID.In(gameIDs.ToSlice()...)).Delete()
 			if err != nil {
 				return err
 			}
