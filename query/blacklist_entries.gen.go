@@ -32,6 +32,7 @@ func newBlacklistEntry(db *gorm.DB, opts ...gen.DOOption) blacklistEntry {
 	_blacklistEntry.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_blacklistEntry.DeletedAt = field.NewField(tableName, "deleted_at")
 	_blacklistEntry.UserID = field.NewString(tableName, "user_id")
+	_blacklistEntry.UserLogin = field.NewString(tableName, "user_login")
 	_blacklistEntry.ChannelID = field.NewString(tableName, "channel_id")
 
 	_blacklistEntry.fillFieldMap()
@@ -48,6 +49,7 @@ type blacklistEntry struct {
 	UpdatedAt field.Time
 	DeletedAt field.Field
 	UserID    field.String
+	UserLogin field.String
 	ChannelID field.String
 
 	fieldMap map[string]field.Expr
@@ -70,6 +72,7 @@ func (b *blacklistEntry) updateTableName(table string) *blacklistEntry {
 	b.UpdatedAt = field.NewTime(table, "updated_at")
 	b.DeletedAt = field.NewField(table, "deleted_at")
 	b.UserID = field.NewString(table, "user_id")
+	b.UserLogin = field.NewString(table, "user_login")
 	b.ChannelID = field.NewString(table, "channel_id")
 
 	b.fillFieldMap()
@@ -87,12 +90,13 @@ func (b *blacklistEntry) GetFieldByName(fieldName string) (field.OrderExpr, bool
 }
 
 func (b *blacklistEntry) fillFieldMap() {
-	b.fieldMap = make(map[string]field.Expr, 6)
+	b.fieldMap = make(map[string]field.Expr, 7)
 	b.fieldMap["id"] = b.ID
 	b.fieldMap["created_at"] = b.CreatedAt
 	b.fieldMap["updated_at"] = b.UpdatedAt
 	b.fieldMap["deleted_at"] = b.DeletedAt
 	b.fieldMap["user_id"] = b.UserID
+	b.fieldMap["user_login"] = b.UserLogin
 	b.fieldMap["channel_id"] = b.ChannelID
 }
 

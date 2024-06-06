@@ -62,12 +62,13 @@ var blacklistCmd = &Definition{
 
 		blk := &models.BlacklistEntry{
 			UserID:    userID,
+			UserLogin: input, // possibly sketchy but this is just for easy display later
 			ChannelID: i.ChannelID,
 		}
 
 		err = qb.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "user_id"}, {Name: "channel_id"}},
-			DoNothing: true,
+			UpdateAll: true,
 		}).Create(blk)
 		if err != nil {
 			content = err.Error()

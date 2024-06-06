@@ -19,7 +19,7 @@ var unsubscribeCmd = &Definition{
 	Handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		qs := query.Subscription
 
-		allsubs, err := qs.Find()
+		allsubs, err := qs.Where(qs.ChannelID.Eq(i.ChannelID)).Find()
 		if len(allsubs) == 0 || err != nil {
 			msg := "No active subscriptions"
 			if err != nil {
