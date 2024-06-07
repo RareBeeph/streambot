@@ -8,6 +8,7 @@ type Stream struct {
 	UserName    string `copier:"must,nopanic"`
 	Title       string `copier:"must,nopanic"`
 	GameID      string `copier:"must,nopanic"`
+	Language    string `copier:"must,nopanic"`
 	ViewerCount string `copier:"must,nopanic"`
 }
 

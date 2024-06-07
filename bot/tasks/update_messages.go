@@ -57,10 +57,15 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) {
 		return bl.UserID
 	})
 
-	matchingStreams, err := qst.Where(
+	streamquery := qst.Where(
 		qst.GameID.Eq(sub.GameID),
 		qst.Title.Lower().Like("%"+sub.Filter+"%"),
-		qst.UserID.NotIn(blacklistUserIDs...)).Find()
+		qst.UserID.NotIn(blacklistUserIDs...))
+	if sub.Language != "" {
+		streamquery = streamquery.Where(qst.Language.Eq(sub.Language))
+	}
+	matchingStreams, err := streamquery.Find()
+
 	if err != nil {
 		log.Err(err).Msg("Failed to find matching streams.")
 	}

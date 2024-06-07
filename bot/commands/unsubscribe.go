@@ -37,9 +37,13 @@ var unsubscribeCmd = &Definition{
 
 		selectedSub, i := get_option(s, i, "Which active subscription would you like to remove?",
 			util.Map(allsubs, func(sub *models.Subscription, _ int) discordgo.SelectMenuOption {
+				// Not using sub.String() because the backticks look bad in a select menu option
 				label := sub.GameName + " (ID: " + sub.GameID + ")"
+				if sub.Language != "" {
+					label += " | Language: " + sub.Language
+				}
 				if sub.Filter != "" {
-					label += " with filter: " + sub.Filter
+					label += " | Filter: " + sub.Filter
 				}
 
 				return discordgo.SelectMenuOption{
