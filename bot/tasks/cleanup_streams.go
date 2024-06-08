@@ -5,6 +5,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gen"
 )
 
 var cleanupStreams = &Task{
@@ -20,9 +21,12 @@ var cleanupStreams = &Task{
 			log.Err(err).Msg("Failed to pluck game IDs")
 		}
 
-		// note: does not consider streams of a subscribed game but in the wrong language to be orphaned
-		// (mostly because i don't know how to phrase a condition for "these two columns both don't match any model instance in this array")
-		_, err = qst.Unscoped().Where(qst.GameID.NotIn(gameids...)).Delete()
+		_, err = qst.Unscoped().Not(gen.Exists(
+			qs.Limit(1).Where(
+				qs.GameID.EqCol(qst.GameID),
+				qs.Where(qs.Language.EqCol(qst.Language)).Or(qs.Language.Eq("")),
+			),
+		)).Delete()
 		if err != nil {
 			log.Err(err).Msg("Failed to delete orphaned stream records")
 		}
