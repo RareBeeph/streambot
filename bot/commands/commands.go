@@ -26,7 +26,7 @@ func Register(cmd *Definition) {
 }
 
 func SlashCommandRouter(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	if i.Type != discordgo.InteractionApplicationCommand {
+	if i.Type != discordgo.InteractionApplicationCommand && i.Type != discordgo.InteractionApplicationCommandAutocomplete {
 		return
 	}
 
