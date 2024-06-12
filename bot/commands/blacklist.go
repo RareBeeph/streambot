@@ -26,7 +26,7 @@ var blacklistCmd = &Definition{
 			},
 		},
 	},
-	Handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		input := i.ApplicationCommandData().Options[0].StringValue()
 
 		usersResponse, err := twitch.Client.GetUsers(&helix.UsersParams{

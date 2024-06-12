@@ -12,7 +12,7 @@ var subscriptionsCmd = &Definition{
 	Base: &discordgo.ApplicationCommand{
 		Description: "Displays currently active subscriptions for the current Discord channel.",
 	},
-	Handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		qs := query.Subscription
 
 		var content string

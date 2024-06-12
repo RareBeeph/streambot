@@ -16,7 +16,7 @@ var reactivateCmd = &Definition{
 	Base: &discordgo.ApplicationCommand{
 		Description: "Reactivates a deactivated subscription.",
 	},
-	Handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		// mostly copied from unsubscribe.go
 
 		qs := query.Subscription

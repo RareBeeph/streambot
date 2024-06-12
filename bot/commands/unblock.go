@@ -16,7 +16,7 @@ var unblockCmd = &Definition{
 	Base: &discordgo.ApplicationCommand{
 		Description: "Remove a user from this channe's blacklist.",
 	},
-	Handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		qb := query.BlacklistEntry
 
 		allblocks, err := qb.Where(qb.ChannelID.Eq(i.ChannelID)).Find()

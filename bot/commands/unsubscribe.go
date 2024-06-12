@@ -16,7 +16,7 @@ var unsubscribeCmd = &Definition{
 	Base: &discordgo.ApplicationCommand{
 		Description: "Remove a subscription to a game/filter pair.",
 	},
-	Handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	handler: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		qs := query.Subscription
 
 		allsubs, err := qs.Where(qs.ChannelID.Eq(i.ChannelID)).Find()
