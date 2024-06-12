@@ -6,6 +6,7 @@ import (
 	"streambot/query"
 
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm/clause"
 )
 
 func (b *bot) registerCommands() error {
@@ -18,7 +19,9 @@ func (b *bot) registerCommands() error {
 			return err
 		}
 
-		err = query.RegisteredCommand.Create(&models.RegisteredCommand{ID: reg.ID, GuildID: reg.GuildID})
+		err = query.RegisteredCommand.Clauses(clause.OnConflict{
+			UpdateAll: true,
+		}).Create(&models.RegisteredCommand{ID: reg.ID, GuildID: reg.GuildID})
 		if err != nil {
 			return err
 		}

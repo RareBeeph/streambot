@@ -47,6 +47,11 @@ func Register(cmd *Definition) {
 }
 
 func SlashCommandRouter(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	// nearly redundant type check, but we need to know we can legally call ApplicationCommandData()
+	if i.Type != discordgo.InteractionApplicationCommand && i.Type != discordgo.InteractionApplicationCommandAutocomplete {
+		return
+	}
+
 	if d, ok := handlers[i.ApplicationCommandData().Name]; ok {
 		d.Interact(s, i)
 	}
