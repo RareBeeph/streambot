@@ -6,8 +6,10 @@ import (
 	"streambot/models"
 	"streambot/query"
 	"streambot/util"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	iso6391 "github.com/emvi/iso-639-1"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm/clause"
@@ -39,43 +41,8 @@ var subscribeCmd = &Definition{
 			},
 		},
 	},
-	handler: subscribeHandler,
-	autocomplete: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		// TODO: generate dynamically according to user input from ISO 639-1 specs,
-		// with language names written in their language
-		choices := []*discordgo.ApplicationCommandOptionChoice{
-			{
-				Name:  "en (English)",
-				Value: "en",
-			},
-			{
-				Name:  "es (Spanish)",
-				Value: "es",
-			},
-			{
-				Name:  "fr (French)",
-				Value: "fr",
-			},
-			{
-				Name:  "jp (Japanese)",
-				Value: "jp",
-			},
-			{
-				Name:  "pt (Portuguese)",
-				Value: "pt",
-			},
-		}
-
-		err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionApplicationCommandAutocompleteResult,
-			Data: &discordgo.InteractionResponseData{
-				Choices: choices,
-			},
-		})
-		if err != nil {
-			log.Err(err).Msg("Failed to respond with autocomplete choices")
-		}
-	},
+	handler:      subscribeHandler,
+	autocomplete: subscribeAutocompleteHandler,
 }
 
 func subscribeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -150,6 +117,43 @@ func subscribeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			Content: content,
 		},
 	})
+}
+
+func subscribeAutocompleteHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	// TODO: generate dynamically according to user input from ISO 639-1 specs,
+	// with language names written in their language
+	var input string
+	for _, opt := range i.ApplicationCommandData().Options {
+		if opt.Name == "optional_language" {
+			input = strings.ToLower(opt.StringValue())
+		}
+	}
+
+	// should we prioritize languages with more user representation on discord?
+	matchingCodes := util.Filter(iso6391.Codes, func(c string, idx int) bool {
+		return strings.HasPrefix(c, input) ||
+			strings.HasPrefix(strings.ToLower(iso6391.Name(c)), input) ||
+			strings.HasPrefix(strings.ToLower(iso6391.NativeName(c)), input)
+	})
+	choices := util.Map(matchingCodes, func(c string, idx int) *discordgo.ApplicationCommandOptionChoice {
+		return &discordgo.ApplicationCommandOptionChoice{
+			Name:  fmt.Sprintf("%s (%s)", c, iso6391.NativeName(c)),
+			Value: c,
+		}
+	})
+	if len(choices) > 25 {
+		choices = choices[:25]
+	}
+
+	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
+		Data: &discordgo.InteractionResponseData{
+			Choices: choices,
+		},
+	})
+	if err != nil {
+		log.Err(err).Msg("Failed to respond with autocomplete choices")
+	}
 }
 
 func init() {
