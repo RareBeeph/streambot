@@ -82,6 +82,12 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) {
 	})
 	messageChunks := util.Chunk(embeds, 2)
 
+	// Temp: limit to 1 message per subscription for aesthetic purposes
+	// TODO: reconsider this decision.
+	if len(messageChunks) > 1 {
+		messageChunks = messageChunks[:1]
+	}
+
 	// Determine what action needs to be taken to post each chunk
 	messageCount := len(sub.Messages)
 	for idx, embed := range messageChunks {
