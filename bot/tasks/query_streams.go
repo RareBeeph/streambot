@@ -10,7 +10,7 @@ import (
 	"github.com/nicklaw5/helix/v2"
 	"github.com/rs/zerolog/log"
 
-	"github.com/deckarep/golang-set/v2"
+	mapset "github.com/deckarep/golang-set/v2"
 
 	"gorm.io/gorm/clause"
 
@@ -39,22 +39,23 @@ var queryStreamsAndUpdateHealthy = Task{
 		wg.Add(len(gamesByLanguage))
 		// We use a map instead of a slice as our intermediary
 		// results store for thread safety
-		queryResults := make(map[*models.Subscription][]helix.Stream)
+		queryResults := sync.Map{}
 		for _, sub := range gamesByLanguage {
 			go func(sub *models.Subscription) {
 				defer wg.Done()
 				defer gameIDs.Add(sub.GameID)
 				streams, _ := twitch.FetchStreams(sub.GameID, sub.Language)
-				queryResults[sub] = streams
+				queryResults.Store(sub, streams)
 			}(sub)
 		}
 		wg.Wait()
 
 		// Flatten that map into a slice
 		rawStreams := []helix.Stream{}
-		for _, streams := range queryResults {
-			rawStreams = append(rawStreams, streams...)
-		}
+		queryResults.Range(func(_, streams any) bool {
+			rawStreams = append(rawStreams, streams.([]helix.Stream)...)
+			return true
+		})
 
 		// Convert from Helix streams to model instances
 		streams := make([]*models.Stream, len(rawStreams))
