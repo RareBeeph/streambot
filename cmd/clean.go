@@ -33,28 +33,43 @@ import (
 // cleanCmd represents the clean command
 var cleanCmd = &cobra.Command{
 	Use:   "clean",
-	Short: "Flushes all our messages from known channels",
-	Long: `Flushes all our messages from known channels.
+	Short: "Flushes our past 100 messages from known channels",
+	Long: `Flushes our past from known channels.
 
 Intended for use during data migration from an older iteration of the bot.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		s := query.Subscription
 		flushdb, _ := cmd.Flags().GetBool("flushdb")
+		searchMax, _ := cmd.Flags().GetInt("count")
 		conf := config.Load()
 
 		discord, err := discordgo.New("Bot " + conf.Token)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Error connecting to discord!")
 		}
+		discord.Open()
 
 		channels := []string{}
-		s.Pluck(s.ChannelID, &channels)
+		s.Pluck(s.ChannelID.Distinct(), &channels)
 
 		for _, id := range channels {
-			channel, _ := discord.Channel(id)
-			for _, msg := range channel.Messages {
-				if msg.Author.ID == discord.State.User.ID {
-					discord.ChannelMessageDelete(id, msg.ID)
+			before := ""
+			searched := 0
+
+			for searched <= searchMax {
+				messages, _ := discord.ChannelMessages(id, 100, before, "", "")
+
+				for _, msg := range messages {
+					if msg.Author.ID == discord.State.User.ID {
+						discord.ChannelMessageDelete(id, msg.ID)
+					}
+
+					before = msg.ID
+					searched += 1
+
+					if searched%100 == 0 {
+						log.Info().Msgf("Searched through %v messages...", searched)
+					}
 				}
 			}
 
@@ -68,4 +83,5 @@ Intended for use during data migration from an older iteration of the bot.`,
 func init() {
 	rootCmd.AddCommand(cleanCmd)
 	cleanCmd.Flags().BoolP("flushdb", "f", false, "Clear the database at the same time")
+	cleanCmd.Flags().IntP("count", "n", 200, "How many messages to search back through in each channel")
 }
