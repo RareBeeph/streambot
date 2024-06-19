@@ -59,6 +59,10 @@ Intended for use during data migration from an older iteration of the bot.`,
 			for searched <= searchMax {
 				messages, _ := discord.ChannelMessages(id, 100, before, "", "")
 
+				if len(messages) == 0 {
+					break
+				}
+
 				for _, msg := range messages {
 					if msg.Author.ID == discord.State.User.ID {
 						discord.ChannelMessageDelete(id, msg.ID)
