@@ -33,10 +33,10 @@ func updateMessages(s *discordgo.Session, minHealth int, maxHealth int) {
 	var wg sync.WaitGroup
 	wg.Add(len(subscriptions))
 	for _, sub := range subscriptions {
-		go func() {
+		go func(sub *models.Subscription) {
 			defer wg.Done()
 			performUpdates(s, sub)
-		}()
+		}(sub)
 	}
 
 	wg.Wait()
