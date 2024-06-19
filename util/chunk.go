@@ -24,11 +24,6 @@ package util
 //
 //	chunks: A slice of slices, where each inner slice is a chunk of items.
 func Chunk[T any](items []T, chunkSize int) (chunks [][]T) {
-	// Don't add an empty inner element
-	if len(items) == 0 {
-		return
-	}
-
 	for chunkSize < len(items) {
 		items, chunks = items[chunkSize:], append(chunks, items[0:chunkSize:chunkSize])
 	}
