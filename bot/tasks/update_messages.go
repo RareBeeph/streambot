@@ -12,7 +12,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/rs/zerolog/log"
-	"gorm.io/gen"
 )
 
 type msgAction struct {
@@ -117,9 +116,8 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) {
 			})
 
 			if channelNoLongerValid(err) {
-				// if the target channel or server no longer exists, remove any subscriptions pertaining to them
-				qs.Where(qs.ChannelID.Eq(sub.ChannelID)).Delete()
-				m.Not(gen.Exists(qs.Limit(1).Where(qs.ID.EqCol(m.SubscriptionID)))).Delete()
+				// if the target channel or server no longer exists, remove this subscription
+				qs.Select(qs.Messages.Field()).Delete(sub)
 				log.Err(err).Msg("Failed to send message.")
 				return
 			}
@@ -134,9 +132,8 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) {
 			err = s.ChannelMessageDelete(sub.ChannelID, action.target.MessageID)
 
 			if channelNoLongerValid(err) {
-				// if the target channel or server no longer exists, remove any subscriptions pertaining to them
-				qs.Where(qs.ChannelID.Eq(sub.ChannelID)).Delete()
-				m.Not(gen.Exists(qs.Limit(1).Where(qs.ID.EqCol(m.SubscriptionID)))).Delete()
+				// if the target channel or server no longer exists, remove this subscription
+				qs.Select(qs.Messages.Field()).Delete(sub)
 				return
 			} else if err == nil || messageUnavailable(err) {
 				// If we successfully deleted the message, or if it had already been deleted, remove our record of it
@@ -154,9 +151,8 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) {
 			})
 
 			if channelNoLongerValid(err) {
-				// if the target channel or server no longer exists, remove any subscriptions pertaining to them
-				qs.Where(qs.ChannelID.Eq(sub.ChannelID)).Delete()
-				m.Not(gen.Exists(qs.Limit(1).Where(qs.ID.EqCol(m.SubscriptionID)))).Delete()
+				// if the target channel or server no longer exists, remove this subscription
+				qs.Select(qs.Messages.Field()).Delete(sub)
 				log.Err(err).Msg("Failed to edit message.")
 				return
 			} else if messageUnavailable(err) {
