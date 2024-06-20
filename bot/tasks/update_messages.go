@@ -3,6 +3,7 @@ package tasks
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"streambot/models"
 	"streambot/query"
 	"streambot/util"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gen"
 )
 
 type msgAction struct {
@@ -113,17 +115,30 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) {
 			message, err := s.ChannelMessageSendComplex(sub.ChannelID, &discordgo.MessageSend{
 				Embeds: action.content,
 			})
-			if err != nil {
+
+			if channelNoLongerValid(err) {
+				// if the target channel or server no longer exists, remove any subscriptions pertaining to them
+				qs.Where(qs.ChannelID.Eq(sub.ChannelID)).Delete()
+				m.Not(gen.Exists(qs.Limit(1).Where(qs.ID.EqCol(m.SubscriptionID)))).Delete()
 				log.Err(err).Msg("Failed to send message.")
+				return
 			}
 
-			m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: idx})
+			if err != nil {
+				log.Err(err).Msg("Failed to send message.")
+			} else {
+				m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: idx})
+			}
 		} else if action.content == nil {
 			// no content => delete
 			err = s.ChannelMessageDelete(sub.ChannelID, action.target.MessageID)
 
-			var resterr *discordgo.RESTError
-			if err == nil || (errors.As(err, &resterr) && resterr.Message.Code == discordgo.ErrCodeUnknownMessage) {
+			if channelNoLongerValid(err) {
+				// if the target channel or server no longer exists, remove any subscriptions pertaining to them
+				qs.Where(qs.ChannelID.Eq(sub.ChannelID)).Delete()
+				m.Not(gen.Exists(qs.Limit(1).Where(qs.ID.EqCol(m.SubscriptionID)))).Delete()
+				return
+			} else if err == nil || messageUnavailable(err) {
 				// If we successfully deleted the message, or if it had already been deleted, remove our record of it
 				m.Where(m.MessageID.Eq(action.target.MessageID)).Delete()
 			} else {
@@ -138,8 +153,13 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) {
 				Channel: sub.ChannelID,
 			})
 
-			var resterr *discordgo.RESTError
-			if errors.As(err, &resterr) && resterr.Message.Code == discordgo.ErrCodeUnknownMessage {
+			if channelNoLongerValid(err) {
+				// if the target channel or server no longer exists, remove any subscriptions pertaining to them
+				qs.Where(qs.ChannelID.Eq(sub.ChannelID)).Delete()
+				m.Not(gen.Exists(qs.Limit(1).Where(qs.ID.EqCol(m.SubscriptionID)))).Delete()
+				log.Err(err).Msg("Failed to edit message.")
+				return
+			} else if messageUnavailable(err) {
 				// if the target message no longer exists, remove our record of it
 				m.Where(m.MessageID.Eq(action.target.MessageID)).Delete()
 			}
@@ -160,6 +180,25 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) {
 
 	// if all our posting/editing/deleting succeeded
 	qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, 0)
+}
+
+func messageUnavailable(err error) bool {
+	var resterr *discordgo.RESTError
+	var errorcodes = []int{
+		discordgo.ErrCodeUnknownMessage,
+		// discordgo.ErrCodeUnknownChannel,
+		// discordgo.ErrCodeUnknownGuild,
+	}
+	return errors.As(err, &resterr) && slices.Contains(errorcodes, resterr.Message.Code)
+}
+
+func channelNoLongerValid(err error) bool {
+	var resterr *discordgo.RESTError
+	var errorcodes = []int{
+		discordgo.ErrCodeUnknownChannel,
+		discordgo.ErrCodeUnknownGuild,
+	}
+	return errors.As(err, &resterr) && slices.Contains(errorcodes, resterr.Message.Code)
 }
 
 func StreamsToEmbedFields(streams ...*models.Stream) []*discordgo.MessageEmbedField {
