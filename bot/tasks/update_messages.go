@@ -113,11 +113,11 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) {
 			message, err := s.ChannelMessageSendComplex(sub.ChannelID, &discordgo.MessageSend{
 				Embeds: action.content,
 			})
-			m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: idx})
-
 			if err != nil {
 				log.Err(err).Msg("Failed to send message.")
 			}
+
+			m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: idx})
 		} else if action.content == nil {
 			// no content => delete
 			err = s.ChannelMessageDelete(sub.ChannelID, action.target.MessageID)
