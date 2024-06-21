@@ -123,6 +123,7 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) {
 			}
 
 			if err != nil {
+				errored = true
 				log.Err(err).Msg("Failed to send message.")
 			} else {
 				m.Create(&models.Message{MessageID: message.ID, SubscriptionID: sub.ID, PostOrder: idx})
@@ -139,6 +140,7 @@ func performUpdates(s *discordgo.Session, sub *models.Subscription) {
 				// If we successfully deleted the message, or if it had already been deleted, remove our record of it
 				m.Where(m.MessageID.Eq(action.target.MessageID)).Delete()
 			} else {
+				errored = true
 				log.Err(err).Msg("Failed to delete message.")
 			}
 		} else {
