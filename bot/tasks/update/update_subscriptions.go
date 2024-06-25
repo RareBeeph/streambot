@@ -41,14 +41,16 @@ func UpdateSubscription(s *discordgo.Session, sub *models.Subscription) {
 		return
 	}
 
-	var errored bool
 	for idx, action := range actions {
-		// if errored, keep performing actions, but don't unset the errored flag
+		// if errored, keep performing actions, but don't unset the error
 		// another option is to just break on the first error of the subscription
-		errored = action.perform(s, sub, idx) || errored
+		actionErr := action.perform(s, sub, idx)
+		if err == nil {
+			err = actionErr
+		}
 	}
 
-	if errored {
+	if err != nil {
 		// propagate failure count
 		qs.Where(qs.ID.Eq(sub.ID)).Update(qs.TimesFailed, qs.TimesFailed.Add(1))
 		return
