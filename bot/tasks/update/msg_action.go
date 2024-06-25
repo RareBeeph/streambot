@@ -111,7 +111,7 @@ func messageUnavailable(err error) bool {
 		// discordgo.ErrCodeUnknownChannel,
 		// discordgo.ErrCodeUnknownGuild,
 	}
-	return isRestError(err, codes)
+	return isRestError(err, codes...)
 }
 
 func channelNoLongerValid(err error) bool {
@@ -119,5 +119,5 @@ func channelNoLongerValid(err error) bool {
 		discordgo.ErrCodeUnknownChannel,
 		discordgo.ErrCodeUnknownGuild,
 	}
-	return isRestError(err, codes)
+	return isRestError(err, codes...)
 }
