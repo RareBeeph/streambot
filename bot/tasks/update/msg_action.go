@@ -34,11 +34,9 @@ func (a *msgAction) postContent(s *discordgo.Session, sub *models.Subscription, 
 		Embeds: a.content,
 	})
 
+	// if the target channel or server no longer exists, remove this subscription
 	if channelNoLongerValid(err) {
-		// if the target channel or server no longer exists, remove this subscription
 		qs.Select(qs.Messages.Field()).Delete(sub)
-		log.Err(err).Msg("Failed to send message.")
-		return
 	}
 
 	if err != nil {
