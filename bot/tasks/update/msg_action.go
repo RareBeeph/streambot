@@ -1,8 +1,6 @@
-package messages
+package update
 
 import (
-	"errors"
-	"slices"
 	"streambot/models"
 	"streambot/query"
 
@@ -13,6 +11,19 @@ import (
 type msgAction struct {
 	target  *models.Message
 	content []*discordgo.MessageEmbed
+}
+
+func (a *msgAction) perform(s *discordgo.Session, sub *models.Subscription, idx int) (errored bool) {
+	// Perform post/edit/delete and update database
+	if a.target == nil {
+		errored = a.postContent(s, sub, idx)
+	} else if a.content == nil {
+		errored = a.deleteTarget(s, sub)
+	} else {
+		// if action has a target and content, edit that target with that content
+		errored = a.editMessage(s, sub)
+	}
+	return
 }
 
 func (a *msgAction) postContent(s *discordgo.Session, sub *models.Subscription, idx int) (errored bool) {
@@ -95,20 +106,18 @@ func (a *msgAction) editMessage(s *discordgo.Session, sub *models.Subscription) 
 }
 
 func messageUnavailable(err error) bool {
-	var resterr *discordgo.RESTError
-	var errorcodes = []int{
+	codes := []int{
 		discordgo.ErrCodeUnknownMessage,
 		// discordgo.ErrCodeUnknownChannel,
 		// discordgo.ErrCodeUnknownGuild,
 	}
-	return errors.As(err, &resterr) && slices.Contains(errorcodes, resterr.Message.Code)
+	return isRestError(err, codes)
 }
 
 func channelNoLongerValid(err error) bool {
-	var resterr *discordgo.RESTError
-	var errorcodes = []int{
+	codes := []int{
 		discordgo.ErrCodeUnknownChannel,
 		discordgo.ErrCodeUnknownGuild,
 	}
-	return errors.As(err, &resterr) && slices.Contains(errorcodes, resterr.Message.Code)
+	return isRestError(err, codes)
 }
