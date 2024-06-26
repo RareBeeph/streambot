@@ -30,11 +30,14 @@ func TestPost(t *testing.T) {
 	m := dismock.New(t)
 
 	s, _ := discordgo.New("Bot abc") // the token doesn't have to be valid
-	s.StateEnabled = false
 	s.Client = m.Client
+	s.StateEnabled = false
 
-	m.SendText(discord.Message{ChannelID: discord.ChannelID(123), Content: "is this required"})
-	// m.SendMessageComplex(api.SendMessageData{}, discord.Message{ChannelID: discord.ChannelID(123)})
+	// m.Messages(discord.ChannelID(123), 0, nil)
+	// m.SendText(discord.Message{ChannelID: discord.ChannelID(123)})
+
+	// TODO: Requires embed data
+	m.SendEmbed(discord.Message{ChannelID: discord.ChannelID(123), Embeds: []discord.Embed{}})
 
 	a := msgAction{content: []*discordgo.MessageEmbed{{}}}
 	sub, _ := query.Subscription.First()
