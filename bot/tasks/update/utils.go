@@ -119,5 +119,5 @@ func streamsToEmbedFields(streams ...*models.Stream) []*discordgo.MessageEmbedFi
 
 func isRestError(err error, codes ...int) bool {
 	var resterr *discordgo.RESTError
-	return errors.As(err, &resterr) && slices.Contains(codes, resterr.Message.Code)
+	return errors.As(err, &resterr) && resterr.Message != nil && slices.Contains(codes, resterr.Message.Code)
 }
