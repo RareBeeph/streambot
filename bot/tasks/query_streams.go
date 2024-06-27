@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"streambot/bot/tasks/update"
 	"streambot/bot/twitch"
 	"streambot/models"
 	"streambot/query"
@@ -85,7 +86,7 @@ var queryStreamsAndUpdateHealthy = Task{
 			log.Err(err).Msg("Failed to update stream list")
 		}
 
-		updateMessages(s, models.SubHealths.Healthy, models.SubHealths.Stale)
+		update.UpdateSubscriptions(s, models.SubHealths.Healthy, models.SubHealths.Stale)
 	},
 }
 

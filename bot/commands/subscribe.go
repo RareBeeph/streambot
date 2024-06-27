@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"streambot/bot/tasks/update"
 	"streambot/bot/twitch"
 	"streambot/models"
 	"streambot/query"
@@ -84,10 +85,11 @@ func subscribeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		game = gamesResponse.Data.Games[0]
 	}
 
+	var sub *models.Subscription
 	if (game != helix.Game{}) {
 		qs := query.Subscription
 
-		sub := &models.Subscription{
+		sub = &models.Subscription{
 			GameName:  game.Name,
 			GameID:    game.ID,
 			Filter:    optionValues["optional_filter"],
@@ -117,6 +119,10 @@ func subscribeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			Content: content,
 		},
 	})
+
+	if sub != nil {
+		update.UpdateSubscription(s, sub)
+	}
 }
 
 func subscribeAutocompleteHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {

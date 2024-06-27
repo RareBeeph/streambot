@@ -5,6 +5,7 @@ go 1.22.1
 require (
 	github.com/bwmarrin/discordgo v0.28.1
 	github.com/deckarep/golang-set/v2 v2.6.0
+	github.com/emvi/iso-639-1 v1.1.0
 	github.com/jinzhu/copier v0.4.0
 	github.com/nicklaw5/helix/v2 v2.28.3
 	github.com/robfig/cron/v3 v3.0.1
@@ -21,7 +22,6 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/emvi/iso-639-1 v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
