@@ -1,6 +1,7 @@
 package update
 
 import (
+	"encoding/json"
 	"os"
 	"streambot/models"
 	"streambot/query"
@@ -36,11 +37,15 @@ func TestPost(t *testing.T) {
 	// m.Messages(discord.ChannelID(123), 0, nil)
 	// m.SendText(discord.Message{ChannelID: discord.ChannelID(123)})
 
-	// TODO: Requires embed data
-	m.SendEmbed(discord.Message{ChannelID: discord.ChannelID(123), Embeds: []discord.Embed{}})
-
-	a := msgAction{content: []*discordgo.MessageEmbed{{}}}
+	a := msgAction{content: []*discordgo.MessageEmbed{{Title: "test"}}}
 	sub, _ := query.Subscription.First()
+
+	embedData, _ := json.Marshal(a.content[0])
+	embedDisc := &discord.Embed{}
+	json.Unmarshal(embedData, embedDisc)
+
+	// TODO: Requires embed data
+	m.SendEmbed(discord.Message{ChannelID: discord.ChannelID(123), Embeds: []discord.Embed{*embedDisc}})
 
 	// should be a valid post
 	a.postContent(s, sub, 0)
